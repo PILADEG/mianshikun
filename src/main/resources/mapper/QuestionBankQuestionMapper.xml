@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kun.mianshikun.mapper.QuestionBankQuestionMapper">
+    <resultMap id="BaseResultMap" type="com.kun.mianshikun.model.entity.QuestionBankQuestion">
+        <id column="id" property="id"/>
+        <result column="questionBankId" property="questionBankId"/>
+        <result column="questionId" property="questionId"/>
+        <result column="userId" property="userId"/>
+        <result column="createTime" property="createTime"/>
+        <result column="updateTime" property="updateTime"/>
+    </resultMap>
+</mapper>

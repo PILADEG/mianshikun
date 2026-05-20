@@ -18,6 +18,7 @@
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
     </resultMap>
+    <select id="listPostWithDelete" resultType="com.kun.mianshikun.model.entity.Post"></select>
 
 
 </mapper>

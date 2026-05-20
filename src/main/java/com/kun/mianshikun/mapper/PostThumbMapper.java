@@ -1,7 +1,7 @@
 package com.kun.mianshikun.mapper;
 
-import com.kun.mianshikun.model.entity.PostThumb;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.kun.mianshikun.model.entity.PostThumb;
 
 /**
  * 帖子点赞数据库操作

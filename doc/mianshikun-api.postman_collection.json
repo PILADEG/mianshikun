@@ -1,0 +1,1195 @@
+{
+  "info": {
+    "name": "面试鸭 API",
+    "description": "面试鸭后端接口集合\n\n基础URL: http://localhost:8101/api\nContent-Type: application/json\n\n统一响应格式:\n{\n  \"code\": 0,\n  \"data\": {},\n  \"message\": \"ok\"\n}\n\n错误码:\n- 0: 成功\n- 40000: 请求参数错误\n- 40100: 未登录\n- 40101: 无权限\n- 40300: 禁止访问\n- 40400: 请求数据不存在\n- 50000: 系统内部异常\n- 50001: 操作失败",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "mianshikun"
+  },
+  "item": [
+    {
+      "name": "用户模块",
+      "item": [
+        {
+          "name": "用户注册",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userAccount\": \"testuser\",\n  \"userPassword\": \"12345678\",\n  \"checkPassword\": \"12345678\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/register",
+              "host": ["{{base_url}}"],
+              "path": ["user", "register"]
+            }
+          }
+        },
+        {
+          "name": "用户登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userAccount\": \"testuser\",\n  \"userPassword\": \"12345678\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/login",
+              "host": ["{{base_url}}"],
+              "path": ["user", "login"]
+            }
+          }
+        },
+        {
+          "name": "微信开放平台登录",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/login/wx_open?code={{code}}",
+              "host": ["{{base_url}}"],
+              "path": ["user", "login", "wx_open"],
+              "query": [
+                { "key": "code", "value": "{{code}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "用户注销",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/logout",
+              "host": ["{{base_url}}"],
+              "path": ["user", "logout"]
+            }
+          }
+        },
+        {
+          "name": "获取当前登录用户",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/get/login",
+              "host": ["{{base_url}}"],
+              "path": ["user", "get", "login"]
+            }
+          }
+        },
+        {
+          "name": "创建用户（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"新用户\",\n  \"userAccount\": \"newuser\",\n  \"userAvatar\": \"https://...\",\n  \"userRole\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/add",
+              "host": ["{{base_url}}"],
+              "path": ["user", "add"]
+            }
+          }
+        },
+        {
+          "name": "删除用户（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/delete",
+              "host": ["{{base_url}}"],
+              "path": ["user", "delete"]
+            }
+          }
+        },
+        {
+          "name": "更新用户（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"userName\": \"新名称\",\n  \"userAvatar\": \"https://...\",\n  \"userProfile\": \"简介\",\n  \"userRole\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/update",
+              "host": ["{{base_url}}"],
+              "path": ["user", "update"]
+            }
+          }
+        },
+        {
+          "name": "编辑用户信息",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"新昵称\",\n  \"userAvatar\": \"https://...\",\n  \"userProfile\": \"个人简介\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/edit",
+              "host": ["{{base_url}}"],
+              "path": ["user", "edit"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取用户（管理员）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/get?id=1",
+              "host": ["{{base_url}}"],
+              "path": ["user", "get"],
+              "query": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取用户VO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/get/vo?id=1",
+              "host": ["{{base_url}}"],
+              "path": ["user", "get", "vo"],
+              "query": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "分页获取用户列表（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"sortField\": \"createTime\",\n  \"sortOrder\": \"descend\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["user", "list", "page"]
+            }
+          }
+        },
+        {
+          "name": "分页获取用户VO列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"sortField\": \"createTime\",\n  \"sortOrder\": \"descend\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["user", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "更新个人信息",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"新昵称\",\n  \"userAvatar\": \"https://...\",\n  \"userProfile\": \"个人简介\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/update/my",
+              "host": ["{{base_url}}"],
+              "path": ["user", "update", "my"]
+            }
+          }
+        },
+        {
+          "name": "添加签到记录",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/add/sign_in",
+              "host": ["{{base_url}}"],
+              "path": ["user", "add", "sign_in"]
+            }
+          }
+        },
+        {
+          "name": "获取签到记录",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/get/sign_in?year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["user", "get", "sign_in"],
+              "query": [
+                { "key": "year", "value": "2026" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "帖子模块",
+      "item": [
+        {
+          "name": "创建帖子",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"帖子标题\",\n  \"content\": \"帖子内容\",\n  \"tags\": [\"Java\", \"Spring Boot\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/add",
+              "host": ["{{base_url}}"],
+              "path": ["post", "add"]
+            }
+          }
+        },
+        {
+          "name": "删除帖子",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/delete",
+              "host": ["{{base_url}}"],
+              "path": ["post", "delete"]
+            }
+          }
+        },
+        {
+          "name": "更新帖子（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"title\": \"新标题\",\n  \"content\": \"新内容\",\n  \"tags\": [\"Java\", \"Spring\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/update",
+              "host": ["{{base_url}}"],
+              "path": ["post", "update"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取帖子VO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/post/get/vo?id=1",
+              "host": ["{{base_url}}"],
+              "path": ["post", "get", "vo"],
+              "query": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "分页获取帖子列表（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"sortField\": \"createTime\",\n  \"sortOrder\": \"descend\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["post", "list", "page"]
+            }
+          }
+        },
+        {
+          "name": "分页获取帖子VO列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"sortField\": \"createTime\",\n  \"sortOrder\": \"descend\",\n  \"searchText\": \"\",\n  \"tags\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["post", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "分页获取当前用户帖子",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/my/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["post", "my", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "ES分页搜索帖子",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"searchText\": \"关键词\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/search/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["post", "search", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "编辑帖子",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"title\": \"帖子标题\",\n  \"content\": \"帖子内容\",\n  \"tags\": [\"Java\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post/edit",
+              "host": ["{{base_url}}"],
+              "path": ["post", "edit"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "帖子收藏",
+      "item": [
+        {
+          "name": "收藏/取消收藏",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post_favour/",
+              "host": ["{{base_url}}"],
+              "path": ["post_favour", ""]
+            }
+          }
+        },
+        {
+          "name": "获取我收藏的帖子列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post_favour/my/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["post_favour", "my", "list", "page"]
+            }
+          }
+        },
+        {
+          "name": "获取用户收藏的帖子列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"userId\": 1,\n  \"postQueryRequest\": {\n    \"searchText\": \"\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post_favour/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["post_favour", "list", "page"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "帖子点赞",
+      "item": [
+        {
+          "name": "点赞/取消点赞",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/post_thumb/",
+              "host": ["{{base_url}}"],
+              "path": ["post_thumb", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "题目模块",
+      "item": [
+        {
+          "name": "创建题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Java面向对象三大特性？\",\n  \"content\": \"请简述Java面向对象的三大特性\",\n  \"tags\": [\"Java\", \"面经\"],\n  \"answer\": \"封装、继承、多态\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/add",
+              "host": ["{{base_url}}"],
+              "path": ["question", "add"]
+            }
+          }
+        },
+        {
+          "name": "删除题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/delete",
+              "host": ["{{base_url}}"],
+              "path": ["question", "delete"]
+            }
+          }
+        },
+        {
+          "name": "更新题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"title\": \"Java面向对象三大特性？\",\n  \"content\": \"请简述Java面向对象的三大特性\",\n  \"tags\": [\"Java\", \"面经\"],\n  \"answer\": \"封装、继承、多态\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/update",
+              "host": ["{{base_url}}"],
+              "path": ["question", "update"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取题目VO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/question/get/vo?id=1",
+              "host": ["{{base_url}}"],
+              "path": ["question", "get", "vo"],
+              "query": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "分页获取题目列表（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"sortField\": \"createTime\",\n  \"sortOrder\": \"descend\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["question", "list", "page"]
+            }
+          }
+        },
+        {
+          "name": "分页获取题目VO列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"questionBankId\": 0,\n  \"searchText\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["question", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "分页获取题目VO列表（限流版）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"questionBankId\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/list/page/vo/sentinel",
+              "host": ["{{base_url}}"],
+              "path": ["question", "list", "page", "vo", "sentinel"]
+            }
+          }
+        },
+        {
+          "name": "分页获取当前用户题目",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/my/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["question", "my", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "编辑题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"title\": \"Java面向对象三大特性？\",\n  \"content\": \"请简述Java面向对象的三大特性\",\n  \"tags\": [\"Java\", \"面经\"],\n  \"answer\": \"封装、继承、多态\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/edit",
+              "host": ["{{base_url}}"],
+              "path": ["question", "edit"]
+            }
+          }
+        },
+        {
+          "name": "ES分页搜索题目",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"searchText\": \"Java\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/search/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["question", "search", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "批量删除题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionIdList\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/delete/batch",
+              "host": ["{{base_url}}"],
+              "path": ["question", "delete", "batch"]
+            }
+          }
+        },
+        {
+          "name": "AI生成题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionType\": \"Java\",\n  \"number\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/question/ai/generate/question",
+              "host": ["{{base_url}}"],
+              "path": ["question", "ai", "generate", "question"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "题库模块",
+      "item": [
+        {
+          "name": "创建题库（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Java面经大全\",\n  \"description\": \"收集了常见的Java面试题\",\n  \"picture\": \"https://...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/add",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "add"]
+            }
+          }
+        },
+        {
+          "name": "删除题库（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/delete",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "delete"]
+            }
+          }
+        },
+        {
+          "name": "更新题库（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"title\": \"Java面经大全\",\n  \"description\": \"更新后的描述\",\n  \"picture\": \"https://...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/update",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "update"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取题库VO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/questionBank/get/vo?id=1&needQueryQuestionList=true&pageSize=10&current=1",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "get", "vo"],
+              "query": [
+                { "key": "id", "value": "1" },
+                { "key": "needQueryQuestionList", "value": "true" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "current", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "分页获取题库列表（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"sortField\": \"createTime\",\n  \"sortOrder\": \"descend\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "list", "page"]
+            }
+          }
+        },
+        {
+          "name": "分页获取题库VO列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"searchText\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "分页获取当前用户题库",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/my/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "my", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "编辑题库（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"title\": \"Java面经大全\",\n  \"description\": \"更新后的描述\",\n  \"picture\": \"https://...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBank/edit",
+              "host": ["{{base_url}}"],
+              "path": ["questionBank", "edit"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "题库题目关联",
+      "item": [
+        {
+          "name": "创建关联（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionBankId\": 1,\n  \"questionId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/add",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "add"]
+            }
+          }
+        },
+        {
+          "name": "删除关联",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/delete",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "delete"]
+            }
+          }
+        },
+        {
+          "name": "更新关联（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"questionBankId\": 1,\n  \"questionId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/update",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "update"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取关联VO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/get/vo?id=1",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "get", "vo"],
+              "query": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "分页获取关联列表（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"questionBankId\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/list/page",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "list", "page"]
+            }
+          }
+        },
+        {
+          "name": "分页获取关联VO列表",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10,\n  \"questionBankId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "分页获取当前用户关联",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current\": 1,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/my/list/page/vo",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "my", "list", "page", "vo"]
+            }
+          }
+        },
+        {
+          "name": "编辑关联（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"questionBankId\": 1,\n  \"questionId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/edit",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "edit"]
+            }
+          }
+        },
+        {
+          "name": "移除关联（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionBankId\": 1,\n  \"questionId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/remove",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "remove"]
+            }
+          }
+        },
+        {
+          "name": "批量添加题目到题库（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionBankId\": 1,\n  \"questionIdList\": [1, 2, 3, 4, 5]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/add/batch",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "add", "batch"]
+            }
+          }
+        },
+        {
+          "name": "批量从题库移除题目（管理员）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionBankId\": 1,\n  \"questionIdList\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/questionBankQuestion/remove/batch",
+              "host": ["{{base_url}}"],
+              "path": ["questionBankQuestion", "remove", "batch"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "文件上传",
+      "item": [
+        {
+          "name": "文件上传",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "", "description": "上传文件" },
+                { "key": "biz", "value": "user_avatar", "type": "text", "description": "业务类型: user_avatar" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/file/upload",
+              "host": ["{{base_url}}"],
+              "path": ["file", "upload"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "微信公众号",
+      "item": [
+        {
+          "name": "消息验证",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/?signature={{signature}}&timestamp={{timestamp}}&nonce={{nonce}}&echostr={{echostr}}",
+              "host": ["{{base_url}}"],
+              "path": [""],
+              "query": [
+                { "key": "signature", "value": "{{signature}}" },
+                { "key": "timestamp", "value": "{{timestamp}}" },
+                { "key": "nonce", "value": "{{nonce}}" },
+                { "key": "echostr", "value": "{{echostr}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "接收微信消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "name": "Content-Type", "value": "application/xml" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          }
+        },
+        {
+          "name": "设置公众号菜单",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/setMenu",
+              "host": ["{{base_url}}"],
+              "path": ["setMenu"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8101/api",
+      "type": "string"
+    },
+    {
+      "key": "code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "signature",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "timestamp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nonce",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "echostr",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

@@ -13,6 +13,7 @@
         <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
     </resultMap>
+    <select id="listFavourPostByPage" resultType="com.kun.mianshikun.model.entity.Post"></select>
 
 
 </mapper>

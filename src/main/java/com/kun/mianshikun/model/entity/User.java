@@ -64,6 +64,17 @@ public class User implements Serializable {
      * 用户角色：user/admin/ban
      */
     private String userRole;
+    private String phoneNumber;
+
+    private String email;
+
+    private String grade;
+
+    private String workExperience;
+
+    private String expertiseDirection;
+
+    private Date editTime;
 
     /**
      * 创建时间
