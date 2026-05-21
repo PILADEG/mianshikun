@@ -23,6 +23,7 @@ import javax.annotation.Resource;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,8 +37,9 @@ public class QuestionController {
 
     @Resource
     private QuestionService questionService;
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addQuestion(@RequestBody QuestionAddRequest questionAddRequest) {
         ThrowUtils.throwIf(questionAddRequest == null, ErrorCode.PARAMS_ERROR);
         Question question = new Question();
@@ -52,8 +54,9 @@ public class QuestionController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(question.getId());
     }
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteQuestion(@RequestBody DeleteRequest deleteRequest) {
         ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
         long id = deleteRequest.getId();
@@ -65,7 +68,7 @@ public class QuestionController {
         boolean result = questionService.removeById(id);
         return ResultUtils.success(result);
     }
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateQuestion(@RequestBody QuestionUpdateRequest questionUpdateRequest) {
@@ -84,8 +87,9 @@ public class QuestionController {
         boolean result = questionService.updateById(question);
         return ResultUtils.success(result);
     }
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/edit")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> editQuestion(@RequestBody QuestionEditRequest questionEditRequest) {
         ThrowUtils.throwIf(questionEditRequest == null || questionEditRequest.getId() == null,
                 ErrorCode.PARAMS_ERROR);
@@ -129,6 +133,7 @@ public class QuestionController {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        log.info("listQuestionVOByPage: {}", questionQueryRequest);
         Page<Question> questionPage = questionService.page(new Page<>(current, size),
                 questionService.getQueryWrapper(questionQueryRequest));
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage));

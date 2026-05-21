@@ -1,9 +1,10 @@
 package com.kun.mianshikun.model.vo;
 
-import lombok.Data;
-
+import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import java.io.Serializable;
 import java.util.Date;
+import lombok.Data;
+import org.springframework.beans.BeanUtils;
 
 @Data
 public class QuestionBankQuestionVO implements Serializable {
@@ -23,4 +24,13 @@ public class QuestionBankQuestionVO implements Serializable {
     private UserVO user;
 
     private static final long serialVersionUID = 1L;
+
+    public static QuestionBankQuestionVO objToVo(QuestionBankQuestion questionBankQuestion) {
+        if (questionBankQuestion == null) {
+            return null;
+        }
+        QuestionBankQuestionVO vo = new QuestionBankQuestionVO();
+        BeanUtils.copyProperties(questionBankQuestion, vo);
+        return vo;
+    }
 }

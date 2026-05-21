@@ -1,5 +1,6 @@
 package com.kun.mianshikun.model.dto.question;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.kun.mianshikun.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -22,7 +23,7 @@ public class QuestionQueryRequest extends PageRequest implements Serializable {
     private List<String> tags;
 
     private String answer;
-
+    @TableField(exist = false)
     private Long questionBankId;
 
     private Long userId;

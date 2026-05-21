@@ -74,8 +74,8 @@
 ### Redis 存储
 
 ```
-Key: refresh_token:{tokenId}
-Value: userId (String)
+Key: refresh_token:{userId}
+Value: tokenId (String)
 TTL: 7 天
 ```
 

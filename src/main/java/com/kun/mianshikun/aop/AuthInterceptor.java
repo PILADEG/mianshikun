@@ -5,11 +5,13 @@ import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.model.enums.UserRoleEnum;
 import com.kun.mianshikun.util.UserContext;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Aspect
 @Component
 public class AuthInterceptor {
@@ -18,6 +20,7 @@ public class AuthInterceptor {
     public Object doInterceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable {
         String mustRole = authCheck.mustRole();
         String userRole = UserContext.getUserRole();
+        log.info("权限校验开始:{}", userRole);
         if (userRole == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }

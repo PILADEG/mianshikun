@@ -87,7 +87,7 @@ public class UserController {
      * 用户登录
      *
      * @param userLoginRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/login")
@@ -127,7 +127,7 @@ public class UserController {
     /**
      * 用户注销
      *
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/logout")
@@ -140,7 +140,7 @@ public class UserController {
     /**
      * 获取当前登录用户
      *
-     * @param request
+     * 
      * @return
      */
     @GetMapping("/get/login")
@@ -160,7 +160,7 @@ public class UserController {
      * 创建用户
      *
      * @param userAddRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/add")
@@ -184,7 +184,7 @@ public class UserController {
      * 删除用户
      *
      * @param deleteRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/delete")
@@ -201,7 +201,7 @@ public class UserController {
      * 更新用户
      *
      * @param userUpdateRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/update")
@@ -221,7 +221,7 @@ public class UserController {
      * 根据 id 获取用户（仅管理员）
      *
      * @param id
-     * @param request
+     * 
      * @return
      */
     @GetMapping("/get")
@@ -239,7 +239,7 @@ public class UserController {
      * 根据 id 获取包装类
      *
      * @param id
-     * @param request
+     * 
      * @return
      */
     @GetMapping("/get/vo")
@@ -253,7 +253,7 @@ public class UserController {
      * 分页获取用户列表（仅管理员）
      *
      * @param userQueryRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/list/page")
@@ -270,7 +270,7 @@ public class UserController {
      * 分页获取用户封装列表
      *
      * @param userQueryRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/list/page/vo")
@@ -296,7 +296,7 @@ public class UserController {
      * 更新个人信息
      *
      * @param userUpdateMyRequest
-     * @param request
+     * 
      * @return
      */
     @PostMapping("/update/my")

@@ -1,5 +1,6 @@
 package com.kun.mianshikun.interceptor;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
@@ -43,16 +44,24 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
             Object handler) throws Exception {
+        log.info("JWT auth interceptor");
         String authHeader = request.getHeader("Authorization");
         if (StringUtils.isBlank(authHeader) || !authHeader.startsWith("Bearer ")) {
             writeUnauthorized(response, "未登录");
             return false;
         }
-
+        log.info("JWT auth interceptor: {}", authHeader);
         String accessToken = authHeader.substring(7);
 
         try {
             Claims claims = jwtUtil.parseAccessToken(accessToken);
+            log.info("JWT parse success: {}", claims);
+            User user = userService.getOne(
+                    new QueryWrapper<User>()
+                            .eq("id", claims.get("userId", Long.class)));
+            log.info("JWT parse success: {}", user);
+            claims.put("userRole", user.getUserRole());
+            claims.put("userName", user.getUserName());
             setRequestAttributes(request, claims);
             return true;
         } catch (ExpiredJwtException e) {
@@ -68,6 +77,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     private boolean tryRefresh(HttpServletRequest request, HttpServletResponse response,
             Claims expiredClaims) throws IOException {
         String refreshTokenStr = request.getHeader("X-Refresh-Token");
+        log.info("JWT refresh interceptor: {}", refreshTokenStr);
         if (StringUtils.isBlank(refreshTokenStr)) {
             writeUnauthorized(response, "未登录");
             return false;
@@ -80,12 +90,14 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
             String redisTokenId = stringRedisTemplate.opsForValue().get("refresh_token:" + userId);
             if (redisTokenId == null || !redisTokenId.equals(tokenId)) {
+                log.info("Refresh token not match: {}", userId);
                 writeUnauthorized(response, "未登录");
                 return false;
             }
 
             User user = userService.getById(userId);
             if (user == null) {
+                log.info("User not found: {}", userId);
                 writeUnauthorized(response, "未登录");
                 return false;
             }

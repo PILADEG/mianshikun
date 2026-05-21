@@ -20,6 +20,7 @@ import com.kun.mianshikun.util.UserContext;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,8 +34,9 @@ public class QuestionBankController {
 
     @Resource
     private QuestionBankService questionBankService;
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest) {
         ThrowUtils.throwIf(questionBankAddRequest == null, ErrorCode.PARAMS_ERROR);
         QuestionBank questionBank = new QuestionBank();
@@ -45,8 +47,9 @@ public class QuestionBankController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(questionBank.getId());
     }
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteQuestionBank(@RequestBody DeleteRequest deleteRequest) {
         ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
         long id = deleteRequest.getId();
@@ -58,8 +61,9 @@ public class QuestionBankController {
         boolean result = questionBankService.removeById(id);
         return ResultUtils.success(result);
     }
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/edit")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> editQuestionBank(@RequestBody QuestionBankEditRequest questionBankEditRequest) {
         ThrowUtils.throwIf(questionBankEditRequest == null || questionBankEditRequest.getId() == null,
                 ErrorCode.PARAMS_ERROR);
@@ -75,7 +79,7 @@ public class QuestionBankController {
         boolean result = questionBankService.updateById(questionBank);
         return ResultUtils.success(result);
     }
-
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateQuestionBank(@RequestBody QuestionBankUpdateRequest questionBankUpdateRequest) {
