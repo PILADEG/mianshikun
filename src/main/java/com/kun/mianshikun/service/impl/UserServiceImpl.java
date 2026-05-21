@@ -1,29 +1,31 @@
 package com.kun.mianshikun.service.impl;
 
-import static com.kun.mianshikun.constant.UserConstant.USER_LOGIN_STATE;
-
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.constant.CommonConstant;
 import com.kun.mianshikun.exception.BusinessException;
+import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.mapper.UserMapper;
+import com.kun.mianshikun.model.dto.user.UserLoginResponse;
 import com.kun.mianshikun.model.dto.user.UserQueryRequest;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.enums.UserRoleEnum;
 import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.UserVO;
 import com.kun.mianshikun.service.UserService;
+import com.kun.mianshikun.util.JwtUtil;
 import com.kun.mianshikun.utils.SqlUtils;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
@@ -42,6 +44,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 盐值，混淆密码
      */
     public static final String SALT = "kun";
+
+    @Resource
+    private JwtUtil jwtUtil;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -82,7 +91,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public UserLoginResponse userLogin(String userAccount, String userPassword) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -105,13 +114,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-        // 3. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
-        return this.getLoginUserVO(user);
+        return buildLoginResponse(user);
     }
 
     @Override
-    public LoginUserVO userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo, HttpServletRequest request) {
+    public UserLoginResponse userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo) {
         String unionId = wxOAuth2UserInfo.getUnionId();
         String mpOpenId = wxOAuth2UserInfo.getOpenid();
         // 单机锁
@@ -136,85 +143,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败");
                 }
             }
-            // 记录用户的登录态
-            request.getSession().setAttribute(USER_LOGIN_STATE, user);
-            return getLoginUserVO(user);
+            return buildLoginResponse(user);
         }
     }
 
-    /**
-     * 获取当前登录用户
-     *
-     * @param request
-     * @return
-     */
     @Override
-    public User getLoginUser(HttpServletRequest request) {
-        // 先判断是否已登录
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
-        if (currentUser == null || currentUser.getId() == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-        // 从数据库查询（追求性能的话可以注释，直接走缓存）
-        long userId = currentUser.getId();
-        currentUser = this.getById(userId);
-        if (currentUser == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-        return currentUser;
-    }
-
-    /**
-     * 获取当前登录用户（允许未登录）
-     *
-     * @param request
-     * @return
-     */
-    @Override
-    public User getLoginUserPermitNull(HttpServletRequest request) {
-        // 先判断是否已登录
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
-        if (currentUser == null || currentUser.getId() == null) {
-            return null;
-        }
-        // 从数据库查询（追求性能的话可以注释，直接走缓存）
-        long userId = currentUser.getId();
-        return this.getById(userId);
-    }
-
-    /**
-     * 是否为管理员
-     *
-     * @param request
-     * @return
-     */
-    @Override
-    public boolean isAdmin(HttpServletRequest request) {
-        // 仅管理员可查询
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
-        return isAdmin(user);
-    }
-
-    @Override
-    public boolean isAdmin(User user) {
-        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
-    }
-
-    /**
-     * 用户注销
-     *
-     * @param request
-     */
-    @Override
-    public boolean userLogout(HttpServletRequest request) {
-        if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
+    public boolean userLogout(String refreshToken) {
+        if (StringUtils.isBlank(refreshToken)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
         }
-        // 移除登录态
-        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        try {
+            io.jsonwebtoken.Claims claims = jwtUtil.parseRefreshToken(refreshToken);
+            Long userId = jwtUtil.getUserId(claims);
+            stringRedisTemplate.delete("refresh_token:" + userId);
+        } catch (Exception e) {
+            log.info("logout with invalid refresh token: {}", e.getMessage());
+        }
         return true;
     }
 
@@ -243,7 +187,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (CollUtil.isEmpty(userList)) {
             return new ArrayList<>();
         }
-        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+        return userList.stream().map(this::getUserVO).collect(java.util.stream.Collectors.toList());
     }
 
     @Override
@@ -266,8 +210,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.eq(StringUtils.isNotBlank(userRole), "userRole", userRole);
         queryWrapper.like(StringUtils.isNotBlank(userProfile), "userProfile", userProfile);
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
-        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), CommonConstant.SORT_ORDER_ASC.equals(sortOrder),
                 sortField);
         return queryWrapper;
+    }
+
+    private UserLoginResponse buildLoginResponse(User user) {
+        String accessToken = jwtUtil.generateAccessToken(user);
+        com.kun.mianshikun.model.dto.user.RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user);
+
+        stringRedisTemplate.opsForValue().set(
+                "refresh_token:" + user.getId(),
+                refreshResult.getTokenId(),
+                7, TimeUnit.DAYS);
+
+        UserLoginResponse response = new UserLoginResponse();
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshResult.getToken());
+        response.setLoginUserVO(getLoginUserVO(user));
+        return response;
     }
 }
