@@ -7,9 +7,8 @@ import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.model.dto.postthumb.PostThumbAddRequest;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.service.PostThumbService;
-import com.kun.mianshikun.service.UserService;
+import com.kun.mianshikun.util.UserContext;
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,9 +29,6 @@ public class PostThumbController {
     @Resource
     private PostThumbService postThumbService;
 
-    @Resource
-    private UserService userService;
-
     /**
      * 点赞 / 取消点赞
      *
@@ -41,13 +37,13 @@ public class PostThumbController {
      * @return resultNum 本次点赞变化数
      */
     @PostMapping("/")
-    public BaseResponse<Integer> doThumb(@RequestBody PostThumbAddRequest postThumbAddRequest,
-            HttpServletRequest request) {
+    public BaseResponse<Integer> doThumb(@RequestBody PostThumbAddRequest postThumbAddRequest) {
         if (postThumbAddRequest == null || postThumbAddRequest.getPostId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 登录才能点赞
-        final User loginUser = userService.getLoginUser(request);
+        User loginUser = new User();
+        loginUser.setId(UserContext.getUserId());
         long postId = postThumbAddRequest.getPostId();
         int result = postThumbService.doPostThumb(postId, loginUser);
         return ResultUtils.success(result);
