@@ -8,13 +8,11 @@ import com.kun.mianshikun.constant.FileConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.manager.CosManager;
 import com.kun.mianshikun.model.dto.file.UploadFileRequest;
-import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.enums.FileUploadBizEnum;
-import com.kun.mianshikun.service.UserService;
+import com.kun.mianshikun.util.UserContext;
 import java.io.File;
 import java.util.Arrays;
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,9 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileController {
 
     @Resource
-    private UserService userService;
-
-    @Resource
     private CosManager cosManager;
 
     /**
@@ -45,23 +40,25 @@ public class FileController {
      *
      * @param multipartFile
      * @param uploadFileRequest
-     * @param request
      * @return
      */
     @PostMapping("/upload")
     public BaseResponse<String> uploadFile(@RequestPart("file") MultipartFile multipartFile,
-            UploadFileRequest uploadFileRequest, HttpServletRequest request) {
+            UploadFileRequest uploadFileRequest) {
         String biz = uploadFileRequest.getBiz();
         FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
         if (fileUploadBizEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         validFile(multipartFile, fileUploadBizEnum);
-        User loginUser = userService.getLoginUser(request);
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
         // 文件目录：根据业务、用户来划分
         String uuid = RandomStringUtils.randomAlphanumeric(8);
         String filename = uuid + "-" + multipartFile.getOriginalFilename();
-        String filepath = String.format("/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+        String filepath = String.format("/%s/%s/%s", fileUploadBizEnum.getValue(), userId, filename);
         File file = null;
         try {
             // 上传文件
