@@ -8,11 +8,6 @@ package com.kun.mianshikun.constant;
  */
 public interface UserConstant {
 
-    /**
-     * 用户登录态键
-     */
-    String USER_LOGIN_STATE = "user_login";
-
     //  region 权限
 
     /**
@@ -29,6 +24,16 @@ public interface UserConstant {
      * 被封号
      */
     String BAN_ROLE = "ban";
+
+    // endregion
+
+    // region 登录态（已废弃，迁移 JWT 后移除）
+
+    /**
+     * 用户登录态键（已废弃，迁移 JWT 后移除）
+     */
+    @Deprecated
+    String USER_LOGIN_STATE = "user_login";
 
     // endregion
 }
