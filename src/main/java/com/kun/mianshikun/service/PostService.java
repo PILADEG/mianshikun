@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.kun.mianshikun.model.dto.post.PostQueryRequest;
 import com.kun.mianshikun.model.entity.Post;
 import com.kun.mianshikun.model.vo.PostVO;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * 帖子服务
@@ -47,14 +46,14 @@ public interface PostService extends IService<Post> {
      * @param request
      * @return
      */
-    PostVO getPostVO(Post post, HttpServletRequest request);
+    PostVO getPostVO(Post post, Long loginUserId);
 
     /**
      * 分页获取帖子封装
      *
      * @param postPage
-     * @param request
+     * @param loginUserId
      * @return
      */
-    Page<PostVO> getPostVOPage(Page<Post> postPage, HttpServletRequest request);
+    Page<PostVO> getPostVOPage(Page<Post> postPage, Long loginUserId);
 }

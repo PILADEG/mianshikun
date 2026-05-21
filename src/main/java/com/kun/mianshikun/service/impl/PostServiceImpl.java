@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import cn.hutool.core.collection.CollUtil;
 import org.apache.commons.lang3.ObjectUtils;
@@ -227,7 +226,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public PostVO getPostVO(Post post, HttpServletRequest request) {
+    public PostVO getPostVO(Post post, Long loginUserId) {
         PostVO postVO = PostVO.objToVo(post);
         long postId = post.getId();
         // 1. 关联查询用户信息
@@ -239,18 +238,16 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         UserVO userVO = userService.getUserVO(user);
         postVO.setUser(userVO);
         // 2. 已登录，获取用户点赞、收藏状态
-        User loginUser = userService.getLoginUserPermitNull(request);
-        if (loginUser != null) {
-            // 获取点赞
+        if (loginUserId != null) {
             QueryWrapper<PostThumb> postThumbQueryWrapper = new QueryWrapper<>();
             postThumbQueryWrapper.in("postId", postId);
-            postThumbQueryWrapper.eq("userId", loginUser.getId());
+            postThumbQueryWrapper.eq("userId", loginUserId);
             PostThumb postThumb = postThumbMapper.selectOne(postThumbQueryWrapper);
             postVO.setHasThumb(postThumb != null);
-            // 获取收藏
+
             QueryWrapper<PostFavour> postFavourQueryWrapper = new QueryWrapper<>();
             postFavourQueryWrapper.in("postId", postId);
-            postFavourQueryWrapper.eq("userId", loginUser.getId());
+            postFavourQueryWrapper.eq("userId", loginUserId);
             PostFavour postFavour = postFavourMapper.selectOne(postFavourQueryWrapper);
             postVO.setHasFavour(postFavour != null);
         }
@@ -258,7 +255,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public Page<PostVO> getPostVOPage(Page<Post> postPage, HttpServletRequest request) {
+    public Page<PostVO> getPostVOPage(Page<Post> postPage, Long loginUserId) {
         List<Post> postList = postPage.getRecords();
         Page<PostVO> postVOPage = new Page<>(postPage.getCurrent(), postPage.getSize(), postPage.getTotal());
         if (CollUtil.isEmpty(postList)) {
@@ -271,30 +268,27 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         // 2. 已登录，获取用户点赞、收藏状态
         Map<Long, Boolean> postIdHasThumbMap = new HashMap<>();
         Map<Long, Boolean> postIdHasFavourMap = new HashMap<>();
-        User loginUser = userService.getLoginUserPermitNull(request);
-        if (loginUser != null) {
+        if (loginUserId != null) {
             Set<Long> postIdSet = postList.stream().map(Post::getId).collect(Collectors.toSet());
-            loginUser = userService.getLoginUser(request);
-            // 获取点赞
             QueryWrapper<PostThumb> postThumbQueryWrapper = new QueryWrapper<>();
             postThumbQueryWrapper.in("postId", postIdSet);
-            postThumbQueryWrapper.eq("userId", loginUser.getId());
+            postThumbQueryWrapper.eq("userId", loginUserId);
             List<PostThumb> postPostThumbList = postThumbMapper.selectList(postThumbQueryWrapper);
             postPostThumbList.forEach(postPostThumb -> postIdHasThumbMap.put(postPostThumb.getPostId(), true));
-            // 获取收藏
+
             QueryWrapper<PostFavour> postFavourQueryWrapper = new QueryWrapper<>();
             postFavourQueryWrapper.in("postId", postIdSet);
-            postFavourQueryWrapper.eq("userId", loginUser.getId());
+            postFavourQueryWrapper.eq("userId", loginUserId);
             List<PostFavour> postFavourList = postFavourMapper.selectList(postFavourQueryWrapper);
             postFavourList.forEach(postFavour -> postIdHasFavourMap.put(postFavour.getPostId(), true));
         }
         // 填充信息
         List<PostVO> postVOList = postList.stream().map(post -> {
             PostVO postVO = PostVO.objToVo(post);
-            Long userId = post.getUserId();
+            Long postUserId = post.getUserId();
             User user = null;
-            if (userIdUserListMap.containsKey(userId)) {
-                user = userIdUserListMap.get(userId).get(0);
+            if (userIdUserListMap.containsKey(postUserId)) {
+                user = userIdUserListMap.get(postUserId).get(0);
             }
             postVO.setUser(userService.getUserVO(user));
             postVO.setHasThumb(postIdHasThumbMap.getOrDefault(post.getId(), false));
