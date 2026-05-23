@@ -12,17 +12,23 @@ import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.mapper.QuestionMapper;
 import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
 import com.kun.mianshikun.model.entity.Question;
+import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.model.vo.UserVO;
+import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.utils.SqlUtils;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -30,8 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
+@Slf4j
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
-
+    @Resource
+    private QuestionBankQuestionService questionBankQuestionService;
     @Resource
     private UserService userService;
 
@@ -71,7 +79,18 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             return queryWrapper;
         }
         if (questionQueryRequest.getQuestionBankId() !=null){
-            return queryWrapper;
+            List<QuestionBankQuestion> qbq_list = questionBankQuestionService.list(new QueryWrapper<QuestionBankQuestion>()
+                    .eq("questionBankId", questionQueryRequest.getQuestionBankId()));
+            log.info("qbq_list:{}",qbq_list);
+            List<Long> questionIdList = qbq_list.stream()
+                    .map(QuestionBankQuestion::getQuestionId)
+                    .collect(Collectors.toList());
+            log.info("questionIdList:{}",questionIdList);
+            if (questionIdList != null && questionIdList.size() > 0){
+                queryWrapper.in("id", questionIdList);
+            }else{
+                queryWrapper.eq("id", -1);
+            }
         }
         String searchText = questionQueryRequest.getSearchText();
         String sortField = questionQueryRequest.getSortField();

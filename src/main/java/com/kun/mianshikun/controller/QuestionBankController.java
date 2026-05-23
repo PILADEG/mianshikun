@@ -1,5 +1,7 @@
 package com.kun.mianshikun.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
 import com.kun.mianshikun.common.BaseResponse;
@@ -13,28 +15,33 @@ import com.kun.mianshikun.model.dto.questionBank.QuestionBankAddRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankEditRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankQueryRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankUpdateRequest;
+import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBank;
+import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.vo.QuestionBankVO;
+import com.kun.mianshikun.model.vo.QuestionVO;
+import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
+import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.util.UserContext;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/questionBank")
 @Slf4j
 public class QuestionBankController {
-
+    @Resource
+    private QuestionService questionService;
     @Resource
     private QuestionBankService questionBankService;
-    @Transactional(rollbackFor = Exception.class)
+    @Resource
+    private QuestionBankQuestionService questionBankQuestionService;
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest) {
@@ -47,7 +54,6 @@ public class QuestionBankController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(questionBank.getId());
     }
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteQuestionBank(@RequestBody DeleteRequest deleteRequest) {
@@ -96,12 +102,30 @@ public class QuestionBankController {
     }
 
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionBankVO> getQuestionBankVOById(Long id, Boolean needQueryQuestionList) {
+    public BaseResponse<QuestionBankVO> getQuestionBankVOById(Long id, Boolean needQueryQuestionList,
+                                                              @RequestParam(defaultValue = "1",required = false) Integer current,
+                                                              @RequestParam(defaultValue = "10",required = false) Integer pageSize) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
         QuestionBank questionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
         QuestionBankVO questionBankVO = questionBankService.getQuestionBankVO(questionBank);
         // needQueryQuestionList 关联查询题目列表待实现
+        log.info("{},{}",current, pageSize);
+        if (needQueryQuestionList){
+            List<QuestionBankQuestion> qbq_list = questionBankQuestionService
+                    .list(Wrappers.lambdaQuery(QuestionBankQuestion.class)
+                            .eq(QuestionBankQuestion::getQuestionBankId, id));
+            List<Long> questionId_list = qbq_list.stream()
+                    .map(QuestionBankQuestion::getQuestionId).collect(Collectors.toList());
+            log.info("questionId_list:{}",questionId_list);
+            if (questionId_list != null && questionId_list.size() > 0){
+                Page<Question> questionPage = questionService.page(new Page<>(current, pageSize),
+                        Wrappers.lambdaQuery(Question.class).in(Question::getId, questionId_list));
+                questionBankVO.setQuestionList(questionService.getQuestionVOPage(questionPage));
+            }else{
+                questionBankVO.setQuestionList(new Page<QuestionVO>());
+            }
+        }
         return ResultUtils.success(questionBankVO);
     }
 

@@ -1,5 +1,6 @@
 package com.kun.mianshikun.model.vo;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.model.entity.QuestionBank;
 import java.io.Serializable;
 import java.util.Date;
@@ -26,7 +27,7 @@ public class QuestionBankVO implements Serializable {
 
     private UserVO user;
 
-    private List<QuestionVO> questionList;
+    private Page<QuestionVO> questionList;
 
     private static final long serialVersionUID = 1L;
 
