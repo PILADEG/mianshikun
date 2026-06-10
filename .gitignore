@@ -6,7 +6,10 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-
+.DJava_projectmianshikunmianshikunsrcmainjavacomkunmianshikuninterceptor
+/doc
+/docs
+.CLAUDE.md
 ### STS ###
 .apt_generated
 .classpath

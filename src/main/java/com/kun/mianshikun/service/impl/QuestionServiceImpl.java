@@ -12,11 +12,13 @@ import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.mapper.QuestionMapper;
 import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
 import com.kun.mianshikun.model.entity.Question;
+import com.kun.mianshikun.model.entity.QuestionBank;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.model.vo.UserVO;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
+import com.kun.mianshikun.service.QuestionBankService;
 import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.utils.SqlUtils;
@@ -42,7 +44,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private QuestionBankQuestionService questionBankQuestionService;
     @Resource
     private UserService userService;
-
+    @Resource
+    private QuestionBankService questionBankService;
     @Override
     public void validQuestion(Question question, boolean add) {
         if (question == null) {
@@ -68,6 +71,10 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             List<String> tagList = JSONUtil.toList(tags, String.class);
             if (CollUtil.isEmpty(tagList)) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签格式错误");
+            }
+            Long tagSet = tagList.stream().distinct().count();
+            if (tagSet != tagList.size()){
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签重复");
             }
         }
     }
@@ -122,7 +129,24 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 sortField);
         return queryWrapper;
     }
-
+    public List<Question> getQuestionBanks(List<Question> questions) {
+        for (Question question : questions){
+            List<QuestionBankQuestion> qbq_list =
+                    questionBankQuestionService
+                    .list(
+                    new QueryWrapper<QuestionBankQuestion>()
+                    .eq("questionId", question.getId()));
+            if (qbq_list != null && qbq_list.size() > 0){
+                List<Long> questionBankIdList = qbq_list.stream()
+                        .map(QuestionBankQuestion::getQuestionBankId)
+                        .collect(Collectors.toList());
+                List<QuestionBank> questionBankList = questionBankService
+                        .list(new QueryWrapper<QuestionBank>().in("id", questionBankIdList));
+                question.setQuestionBanks(questionBankList);
+            }
+        }
+        return questions;
+    }
     @Override
     public QuestionVO getQuestionVO(Question question) {
         if (question == null) {

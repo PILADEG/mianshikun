@@ -7,6 +7,8 @@ import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
 import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.vo.QuestionVO;
 
+import java.util.List;
+
 public interface QuestionService extends IService<Question> {
 
     void validQuestion(Question question, boolean add);
@@ -16,4 +18,5 @@ public interface QuestionService extends IService<Question> {
     QuestionVO getQuestionVO(Question question);
 
     Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage);
+    List<Question> getQuestionBanks(List<Question> questions);
 }

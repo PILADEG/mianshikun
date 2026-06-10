@@ -1,6 +1,7 @@
 package com.kun.mianshikun.controller;
 
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
 import com.kun.mianshikun.common.BaseResponse;
@@ -15,8 +16,12 @@ import com.kun.mianshikun.model.dto.question.QuestionEditRequest;
 import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
 import com.kun.mianshikun.model.dto.question.QuestionUpdateRequest;
 import com.kun.mianshikun.model.entity.Question;
+import com.kun.mianshikun.model.entity.QuestionBankQuestion;
+import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionVO;
+import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionService;
+import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import java.util.List;
 import javax.annotation.Resource;
@@ -37,6 +42,10 @@ public class QuestionController {
 
     @Resource
     private QuestionService questionService;
+    @Resource
+    private UserService userService;
+    @Resource
+    private QuestionBankQuestionService questionBankQuestionService;
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -62,9 +71,11 @@ public class QuestionController {
         long id = deleteRequest.getId();
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
-        if (!oldQuestion.getUserId().equals(UserContext.getUserId()) && !UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        User oldUser = userService.getById(oldQuestion.getUserId());
+        if (!oldUser.getId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
         }
+        boolean re = questionBankQuestionService.remove(new QueryWrapper<QuestionBankQuestion>().eq("questionId", id));
         boolean result = questionService.removeById(id);
         return ResultUtils.success(result);
     }
@@ -84,6 +95,10 @@ public class QuestionController {
         long id = questionUpdateRequest.getId();
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
+        User oldUser = userService.getById(oldQuestion.getUserId());
+        if (!oldUser.getId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+        }
         boolean result = questionService.updateById(question);
         return ResultUtils.success(result);
     }
@@ -125,6 +140,8 @@ public class QuestionController {
         long size = questionQueryRequest.getPageSize();
         Page<Question> questionPage = questionService.page(new Page<>(current, size),
                 questionService.getQueryWrapper(questionQueryRequest));
+        List<Question> new_questions = questionService.getQuestionBanks(questionPage.getRecords());
+        questionPage.setRecords(new_questions);
         return ResultUtils.success(questionPage);
     }
 
@@ -132,7 +149,7 @@ public class QuestionController {
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
         log.info("listQuestionVOByPage: {}", questionQueryRequest);
         Page<Question> questionPage = questionService.page(new Page<>(current, size),
                 questionService.getQueryWrapper(questionQueryRequest));
@@ -153,6 +170,8 @@ public class QuestionController {
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listMyQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Long  userId = UserContext.getUserId();
+        ThrowUtils.throwIf(userId == null, ErrorCode.NOT_LOGIN_ERROR);
         questionQueryRequest.setUserId(UserContext.getUserId());
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();

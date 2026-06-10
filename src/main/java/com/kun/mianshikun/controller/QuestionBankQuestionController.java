@@ -17,10 +17,12 @@ import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionUpd
 import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBank;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
+import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankQuestionVO;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
 import com.kun.mianshikun.service.QuestionService;
+import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import java.util.List;
 import javax.annotation.Resource;
@@ -43,11 +45,13 @@ public class QuestionBankQuestionController {
     private QuestionBankService questionBankService;
     @Resource
     private QuestionBankQuestionService questionBankQuestionService;
-
+    @Resource
+    private UserService userService;
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addQuestionBankQuestion(@RequestBody QuestionBankQuestionAddRequest addRequest) {
         ThrowUtils.throwIf(addRequest == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(addRequest.getQuestionBankId() == null || addRequest.getQuestionBankId() <= 0,ErrorCode.PARAMS_ERROR);
         QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
         BeanUtils.copyProperties(addRequest, questionBankQuestion);
         questionBankQuestionService.validQuestionBankQuestion(questionBankQuestion, true);
@@ -57,6 +61,11 @@ public class QuestionBankQuestionController {
         Long questionBankCount=questionBankService.count(new QueryWrapper<QuestionBank>()
                 .eq("id", questionBankQuestion.getQuestionBankId()));
         ThrowUtils.throwIf(questionBankCount<=0,ErrorCode.NOT_FOUND_ERROR);
+        Question question = questionService.getById(questionBankQuestion.getQuestionId());
+        User oldUser = userService.getById(question.getUserId());
+        if (!oldUser.getId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+        }
         questionBankQuestion.setUserId(UserContext.getUserId());
         boolean result = questionBankQuestionService.save(questionBankQuestion);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -126,6 +135,8 @@ public class QuestionBankQuestionController {
     public BaseResponse<Page<QuestionBankQuestionVO>> listMyQuestionBankQuestionVOByPage(
             @RequestBody QuestionBankQuestionQueryRequest queryRequest) {
         ThrowUtils.throwIf(queryRequest == null, ErrorCode.PARAMS_ERROR);
+        Long userId = UserContext.getUserId();
+        ThrowUtils.throwIf(userId == null, ErrorCode.NOT_LOGIN_ERROR);
         queryRequest.setUserId(UserContext.getUserId());
         long current = queryRequest.getCurrent();
         long size = queryRequest.getPageSize();
@@ -136,6 +147,7 @@ public class QuestionBankQuestionController {
     }
 
     @PostMapping("/edit")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> editQuestionBankQuestion(@RequestBody QuestionBankQuestionEditRequest editRequest) {
         ThrowUtils.throwIf(editRequest == null || editRequest.getId() == null, ErrorCode.PARAMS_ERROR);
         QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
@@ -157,15 +169,22 @@ public class QuestionBankQuestionController {
             @RequestBody QuestionBankQuestionRemoveRequest removeRequest) {
         ThrowUtils.throwIf(removeRequest == null || removeRequest.getQuestionBankId() == null
                 || removeRequest.getQuestionId() == null, ErrorCode.PARAMS_ERROR);
-        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<QuestionBankQuestion> queryWrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        QueryWrapper<QuestionBankQuestion> queryWrapper =
+                new QueryWrapper<>();
         queryWrapper.eq("questionBankId", removeRequest.getQuestionBankId());
         queryWrapper.eq("questionId", removeRequest.getQuestionId());
+        QuestionBankQuestion questionBankQuestion = questionBankQuestionService.getOne(queryWrapper);
+        ThrowUtils.throwIf(questionBankQuestion == null, ErrorCode.NOT_FOUND_ERROR);
+        User oldUser = userService.getById(questionBankQuestion.getUserId());
+        if (!oldUser.getId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+        }
         boolean result = questionBankQuestionService.remove(queryWrapper);
         return ResultUtils.success(result);
     }
 
     @PostMapping("/add/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> batchAddQuestionsToBank(@RequestBody QuestionBankQuestionBatchRequest batchRequest) {
         ThrowUtils.throwIf(batchRequest == null || batchRequest.getQuestionBankId() == null
                 || batchRequest.getQuestionIdList() == null || batchRequest.getQuestionIdList().isEmpty(),
@@ -183,6 +202,7 @@ public class QuestionBankQuestionController {
     }
 
     @PostMapping("/remove/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> batchRemoveQuestionsFromBank(
             @RequestBody QuestionBankQuestionBatchRequest batchRequest) {
         ThrowUtils.throwIf(batchRequest == null || batchRequest.getQuestionBankId() == null

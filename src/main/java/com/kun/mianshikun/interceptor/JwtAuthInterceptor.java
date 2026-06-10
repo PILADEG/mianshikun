@@ -44,13 +44,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
             Object handler) throws Exception {
-        log.info("JWT auth interceptor");
         String authHeader = request.getHeader("Authorization");
+        // 无 token → 匿名访问，放行
         if (StringUtils.isBlank(authHeader) || !authHeader.startsWith("Bearer ")) {
-            writeUnauthorized(response, "未登录");
-            return false;
+            return true;
         }
-        log.info("JWT auth interceptor: {}", authHeader);
         String accessToken = authHeader.substring(7);
 
         try {

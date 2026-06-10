@@ -1,9 +1,10 @@
 package com.kun.mianshikun.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.kun.mianshikun.model.vo.QuestionBankQuestionVO;
 import lombok.Builder;
 import lombok.Data;
-
+import java.util.List;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -27,6 +28,9 @@ public class Question implements Serializable {
     private Date editTime;
 
     private Date createTime;
+
+    @TableField(exist = false)
+    private List<QuestionBank> questionBanks;
 
     private Date updateTime;
 

@@ -18,11 +18,13 @@ import com.kun.mianshikun.model.dto.questionBank.QuestionBankUpdateRequest;
 import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBank;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
+import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankVO;
 import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
 import com.kun.mianshikun.service.QuestionService;
+import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,8 @@ public class QuestionBankController {
     private QuestionBankService questionBankService;
     @Resource
     private QuestionBankQuestionService questionBankQuestionService;
+    @Resource
+    private UserService userService;
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest) {
@@ -60,9 +64,14 @@ public class QuestionBankController {
         ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
         long id = deleteRequest.getId();
         QuestionBank oldQuestionBank = questionBankService.getById(id);
+        log.info("oldQuestonBank:{}",oldQuestionBank);
+        User oldUser = userService.getById(oldQuestionBank.getUserId());
         ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
-        if (!oldQuestionBank.getUserId().equals(UserContext.getUserId()) && !UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
+        if (!UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        if (!oldUser.getId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf( oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
         }
         boolean result = questionBankService.removeById(id);
         return ResultUtils.success(result);
@@ -96,7 +105,11 @@ public class QuestionBankController {
         questionBankService.validQuestionBank(questionBank, false);
         long id = questionBankUpdateRequest.getId();
         QuestionBank oldQuestionBank = questionBankService.getById(id);
+        User oldUser = userService.getById(oldQuestionBank.getUserId());
         ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
+        if (!oldUser.getId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+        }
         boolean result = questionBankService.updateById(questionBank);
         return ResultUtils.success(result);
     }
@@ -145,7 +158,7 @@ public class QuestionBankController {
             @RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
         long current = questionBankQueryRequest.getCurrent();
         long size = questionBankQueryRequest.getPageSize();
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
         Page<QuestionBank> questionBankPage = questionBankService.page(new Page<>(current, size),
                 questionBankService.getQueryWrapper(questionBankQueryRequest));
         return ResultUtils.success(questionBankService.getQuestionBankVOPage(questionBankPage));
@@ -155,6 +168,8 @@ public class QuestionBankController {
     public BaseResponse<Page<QuestionBankVO>> listMyQuestionBankVOByPage(
             @RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
         ThrowUtils.throwIf(questionBankQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Long userId = UserContext.getUserId();
+        ThrowUtils.throwIf(userId == null, ErrorCode.NOT_LOGIN_ERROR);
         questionBankQueryRequest.setUserId(UserContext.getUserId());
         long current = questionBankQueryRequest.getCurrent();
         long size = questionBankQueryRequest.getPageSize();

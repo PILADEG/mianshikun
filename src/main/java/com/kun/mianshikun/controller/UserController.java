@@ -169,6 +169,10 @@ public class UserController {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        if(userAddRequest.getUserAccount() == null ||
+        userAddRequest.getUserAccount().equals("")){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号不能为空");
+        }
         User user = new User();
         BeanUtils.copyProperties(userAddRequest, user);
         // 默认密码 12345678
@@ -192,6 +196,9 @@ public class UserController {
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        if(deleteRequest.getId().equals(UserContext.getUserId())){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能删除自己");
         }
         boolean b = userService.removeById(deleteRequest.getId());
         return ResultUtils.success(b);
@@ -243,6 +250,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<UserVO> getUserVOById(long id) {
         BaseResponse<User> response = getUserById(id);
         User user = response.getData();
@@ -274,6 +282,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
         if (userQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

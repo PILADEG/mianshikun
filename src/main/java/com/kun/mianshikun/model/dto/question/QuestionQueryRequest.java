@@ -25,7 +25,8 @@ public class QuestionQueryRequest extends PageRequest implements Serializable {
     private String answer;
     @TableField(exist = false)
     private Long questionBankId;
-
+    @TableField(exist = false)
+    private Boolean needQuestionBank;
     private Long userId;
 
     private String searchText;
