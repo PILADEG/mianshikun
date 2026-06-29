@@ -45,36 +45,62 @@ public class QuestionBankController {
     @Resource
     private QuestionBankQuestionService questionBankQuestionService;
     @Resource
+    private FileController fileController;
+    @Resource
     private UserService userService;
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Transactional(rollbackFor = Exception.class)
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest) {
         ThrowUtils.throwIf(questionBankAddRequest == null, ErrorCode.PARAMS_ERROR);
         QuestionBank questionBank = new QuestionBank();
         BeanUtils.copyProperties(questionBankAddRequest, questionBank);
         questionBankService.validQuestionBank(questionBank, true);
         questionBank.setUserId(UserContext.getUserId());
-        boolean result = questionBankService.save(questionBank);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(questionBank.getId());
+        try{
+            boolean result = questionBankService.save(questionBank);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+            return ResultUtils.success(questionBank.getId());
+        } catch (Exception e) {
+            if (questionBankAddRequest.getPicture() != null
+            && !questionBankAddRequest.getPicture().isEmpty()){
+                fileController.deleteFile(questionBank.getPicture());
+            }
+            if (e instanceof BusinessException){
+                throw e;
+            }
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
     }
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Transactional(rollbackFor = Exception.class)
     public BaseResponse<Boolean> deleteQuestionBank(@RequestBody DeleteRequest deleteRequest) {
-        ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
-        long id = deleteRequest.getId();
-        QuestionBank oldQuestionBank = questionBankService.getById(id);
-        log.info("oldQuestonBank:{}",oldQuestionBank);
-        User oldUser = userService.getById(oldQuestionBank.getUserId());
-        ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
-        if (!UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        try{
+            ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
+            long id = deleteRequest.getId();
+            QuestionBank oldQuestionBank = questionBankService.getById(id);
+            log.info("oldQuestonBank:{}",oldQuestionBank);
+            User oldUser = userService.getById(oldQuestionBank.getUserId());
+            ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
+            if (!UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+            if (!oldUser.getId().equals(UserContext.getUserId())){
+                ThrowUtils.throwIf( oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+            }
+            if (oldQuestionBank.getPicture() != null
+                    && !oldQuestionBank.getPicture().isEmpty()){
+                fileController.deleteFile(oldQuestionBank.getPicture());
+            }
+            boolean result = questionBankService.removeById(id);
+            return ResultUtils.success(result);
+        } catch (Exception e) {
+            if (e instanceof BusinessException){
+                throw e;
+            }
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
-        if (!oldUser.getId().equals(UserContext.getUserId())){
-            ThrowUtils.throwIf( oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
-        }
-        boolean result = questionBankService.removeById(id);
-        return ResultUtils.success(result);
     }
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/edit")
@@ -98,20 +124,32 @@ public class QuestionBankController {
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateQuestionBank(@RequestBody QuestionBankUpdateRequest questionBankUpdateRequest) {
-        ThrowUtils.throwIf(questionBankUpdateRequest == null || questionBankUpdateRequest.getId() == null,
-                ErrorCode.PARAMS_ERROR);
-        QuestionBank questionBank = new QuestionBank();
-        BeanUtils.copyProperties(questionBankUpdateRequest, questionBank);
-        questionBankService.validQuestionBank(questionBank, false);
-        long id = questionBankUpdateRequest.getId();
-        QuestionBank oldQuestionBank = questionBankService.getById(id);
-        User oldUser = userService.getById(oldQuestionBank.getUserId());
-        ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
-        if (!oldUser.getId().equals(UserContext.getUserId())){
-            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+        try{
+            ThrowUtils.throwIf(questionBankUpdateRequest == null || questionBankUpdateRequest.getId() == null,
+                    ErrorCode.PARAMS_ERROR);
+            QuestionBank questionBank = new QuestionBank();
+            BeanUtils.copyProperties(questionBankUpdateRequest, questionBank);
+            questionBankService.validQuestionBank(questionBank, false);
+            long id = questionBankUpdateRequest.getId();
+            QuestionBank oldQuestionBank = questionBankService.getById(id);
+            ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
+            User oldUser = userService.getById(oldQuestionBank.getUserId());
+            if (!oldUser.getId().equals(UserContext.getUserId())){
+                ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
+            }
+            boolean result = questionBankService.updateById(questionBank);
+            return ResultUtils.success(result);
+        } catch (Exception e) {
+            if (questionBankUpdateRequest.getPicture() != null
+                    && !questionBankUpdateRequest.getPicture().isEmpty()){
+                fileController.deleteFile(questionBankUpdateRequest.getPicture());
+            }
+            if (e instanceof BusinessException) {
+                throw e;
+            }
+
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
-        boolean result = questionBankService.updateById(questionBank);
-        return ResultUtils.success(result);
     }
 
     @GetMapping("/get/vo")

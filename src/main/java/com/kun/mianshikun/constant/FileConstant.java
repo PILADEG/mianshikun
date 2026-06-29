@@ -13,4 +13,5 @@ public interface FileConstant {
      * todo 需替换配置
      */
     String COS_HOST = "https://kun.icu";
+    String LOCAL_PATH = "D:/Java_project/imgs/mianshikun/";
 }
