@@ -95,7 +95,6 @@ public class FileController {
                     deleteFile(oldQuestionBank.getPicture());
                 }
             }
-            log.info("0000000000000000000000000");
             questionBankService.update(new UpdateWrapper<QuestionBank>()
                     .eq("id", questionBank.getId())
                     .set("picture", null));

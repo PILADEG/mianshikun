@@ -79,8 +79,12 @@ public class QuestionBankQuestionController {
         long id = deleteRequest.getId();
         QuestionBankQuestion old = questionBankQuestionService.getById(id);
         ThrowUtils.throwIf(old == null, ErrorCode.NOT_FOUND_ERROR);
+        User oldUser = userService.getById(old.getUserId());
         if (!old.getUserId().equals(UserContext.getUserId()) && !UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        if (!old.getUserId().equals(UserContext.getUserId())){
+            ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
         }
         boolean result = questionBankQuestionService.removeById(id);
         return ResultUtils.success(result);
