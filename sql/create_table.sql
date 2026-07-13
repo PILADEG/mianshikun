@@ -81,6 +81,7 @@ ALTER TABLE user
 
 -- 功能扩展：AI 模拟面试功能
 -- 模拟面试表
+-- 待开放
 create table if not exists mock_interview
 (
     id             bigint auto_increment comment 'id' primary key,

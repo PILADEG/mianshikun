@@ -3,11 +3,15 @@ package com.kun.mianshikun.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.kun.mianshikun.annotation.AuthCheck;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.constant.CommonConstant;
+import com.kun.mianshikun.constant.RedisConstant;
+import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.mapper.UserMapper;
+import com.kun.mianshikun.model.dto.user.RefreshTokenResult;
 import com.kun.mianshikun.model.dto.user.UserLoginResponse;
 import com.kun.mianshikun.model.dto.user.UserQueryRequest;
 import com.kun.mianshikun.model.entity.User;
@@ -16,15 +20,22 @@ import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.UserVO;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.JwtUtil;
+import com.kun.mianshikun.util.UserContext;
 import com.kun.mianshikun.utils.SqlUtils;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RBitSet;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +44,6 @@ import org.springframework.util.DigestUtils;
 /**
  * 用户服务实现
  *
- * @author <a href="https://github.com/likun">程序员鱼皮</a>
- * @from <a href="https://kun.icu">编程导航知识星球</a>
  */
 @Service
 @Slf4j
@@ -50,7 +59,49 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private RedissonClient redissonClient;
 
+    @AuthCheck(mustRole = UserConstant.DEFAULT_ROLE)
+    @Override
+    public boolean userSignIn(String userId){
+        String userRole = UserContext.getUserRole();
+        if(StringUtils.isBlank(userRole) || userRole.equals(UserConstant.GUEST_ROLE)){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        log.info("用户{}签到", userId);
+        LocalDateTime now = LocalDateTime.now();
+        Integer day = now.getDayOfYear();
+        Integer year = now.getYear();
+        RBitSet bitSet = redissonClient.getBitSet(RedisConstant.getUserSignInKey(userId, year));
+        BitSet bitSet1 = bitSet.asBitSet();
+        if (bitSet1.get(day)){
+            return true;
+        }
+        bitSet.set(day);
+        return true;
+    }
+    @Override
+    @AuthCheck(mustRole = UserConstant.DEFAULT_ROLE)
+    public List<Integer> getUserSignInDays(String userId, Integer year){
+        String userRole = UserContext.getUserRole();
+        if(StringUtils.isBlank(userRole) || userRole.equals(UserConstant.GUEST_ROLE)){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (year == null){
+            year = now.getYear();
+        }
+        RBitSet bitSet = redissonClient.getBitSet(RedisConstant.getUserSignInKey(userId, year));
+        BitSet bitSet1 = bitSet.asBitSet();
+        List<Integer> list = new ArrayList<>();
+        int current = 0;
+        while ((current = bitSet1.nextSetBit(current)) != -1){
+            list.add(current);
+            current++;
+        }
+        return list;
+    }
     @Transactional(rollbackFor = Exception.class)
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -217,7 +268,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private UserLoginResponse buildLoginResponse(User user) {
         String accessToken = jwtUtil.generateAccessToken(user);
-        com.kun.mianshikun.model.dto.user.RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user);
+        RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user);
 
         stringRedisTemplate.opsForValue().set(
                 "refresh_token:" + user.getId(),

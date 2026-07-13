@@ -14,8 +14,6 @@ import org.springframework.boot.CommandLineRunner;
 /**
  * 全量同步帖子到 es
  *
- * @author <a href="https://github.com/likun">程序员鱼皮</a>
- * @from <a href="https://kun.icu">编程导航知识星球</a>
  */
 // todo 取消注释开启任务
 //@Component

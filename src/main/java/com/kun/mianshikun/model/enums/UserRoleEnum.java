@@ -8,11 +8,9 @@ import org.apache.commons.lang3.ObjectUtils;
 /**
  * 用户角色枚举
  *
- * @author <a href="https://github.com/likun">程序员鱼皮</a>
- * @from <a href="https://kun.icu">编程导航知识星球</a>
  */
 public enum UserRoleEnum {
-
+    GUEST("游客","guest"),
     USER("用户", "user"),
     ADMIN("管理员", "admin"),
     BAN("被封号", "ban");

@@ -26,7 +26,6 @@ import com.kun.mianshikun.service.UserService;
 import java.util.List;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
@@ -46,8 +45,6 @@ import static com.kun.mianshikun.service.impl.UserServiceImpl.SALT;
 /**
  * 用户接口
  *
- * @author <a href="https://github.com/likun">程序员鱼皮</a>
- * @from <a href="https://kun.icu">编程导航知识星球</a>
  */
 @RestController
 @RequestMapping("/user")
@@ -61,7 +58,21 @@ public class UserController {
     private WxOpenConfig wxOpenConfig;
 
     // region 登录相关
-
+    @GetMapping("/signIn")
+    public BaseResponse<Boolean> userSignIn(@RequestParam String userId){
+        if (userId == null || StringUtils.isBlank(userId)){
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+        }
+        return ResultUtils.success(userService.userSignIn(userId));
+    }
+    @GetMapping("/signIn/get")
+    public BaseResponse<List> userSignInGet(@RequestParam String userId,
+                                            @RequestParam(required = false) Integer year){
+        if (userId == null || StringUtils.isBlank(userId)){
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+        }
+        return ResultUtils.success(userService.getUserSignInDays(userId, year));
+    }
     /**
      * 用户注册
      *

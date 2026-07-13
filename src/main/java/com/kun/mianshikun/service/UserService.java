@@ -27,4 +27,6 @@ public interface UserService extends IService<User> {
     List<UserVO> getUserVO(List<User> userList);
 
     QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
+    boolean userSignIn(String userId);
+    List<Integer> getUserSignInDays(String userId, Integer year);
 }

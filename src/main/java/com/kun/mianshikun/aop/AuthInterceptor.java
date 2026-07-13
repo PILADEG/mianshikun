@@ -35,6 +35,12 @@ public class AuthInterceptor {
         if (UserRoleEnum.ADMIN.equals(mustRoleEnum) && !UserRoleEnum.ADMIN.equals(userRoleEnum)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        if (UserRoleEnum.USER.equals(mustRoleEnum)){
+            if (!UserRoleEnum.USER.equals(userRoleEnum)
+                    && !UserRoleEnum.ADMIN.equals(userRoleEnum)){
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+        }
         return joinPoint.proceed();
     }
 }

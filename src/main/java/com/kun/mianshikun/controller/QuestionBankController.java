@@ -160,7 +160,6 @@ public class QuestionBankController {
         QuestionBank questionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
         QuestionBankVO questionBankVO = questionBankService.getQuestionBankVO(questionBank);
-        // needQueryQuestionList 关联查询题目列表待实现
         log.info("{},{}",current, pageSize);
         if (needQueryQuestionList){
             List<QuestionBankQuestion> qbq_list = questionBankQuestionService
