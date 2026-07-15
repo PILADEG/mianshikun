@@ -155,7 +155,16 @@ public class QuestionController {
                 questionService.getQueryWrapper(questionQueryRequest));
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
     }
-
+    @PostMapping("/list/page/es")
+    public BaseResponse<Page<QuestionVO>> listQuestionVOByPageEs(
+            @RequestBody QuestionQueryRequest questionQueryRequest) {
+        long current = questionQueryRequest.getCurrent();
+        long size = questionQueryRequest.getPageSize();
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
+        log.info("listQuestionVOByPage: {}", questionQueryRequest);
+        Page<Question> questionPage = questionService.searchFromES(questionQueryRequest);
+        return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+    }
     @PostMapping("/list/page/vo/sentinel")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPageSentinel(
             @RequestBody QuestionQueryRequest questionQueryRequest) {

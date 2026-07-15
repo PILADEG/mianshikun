@@ -74,11 +74,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Integer day = now.getDayOfYear();
         Integer year = now.getYear();
         RBitSet bitSet = redissonClient.getBitSet(RedisConstant.getUserSignInKey(userId, year));
-        BitSet bitSet1 = bitSet.asBitSet();
-        if (bitSet1.get(day)){
+        if (bitSet.get(day)){
             return true;
         }
-        bitSet.set(day);
+        bitSet.set(day, true);
         return true;
     }
     @Override
@@ -100,6 +99,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             list.add(current);
             current++;
         }
+        log.info("签到天数{}",  list);
         return list;
     }
     @Transactional(rollbackFor = Exception.class)
