@@ -7,4 +7,5 @@ import java.lang.annotation.*;
 @Documented
 public @interface HotKeyCache {
     String key() default "";
+    String prefix() default "";
 }

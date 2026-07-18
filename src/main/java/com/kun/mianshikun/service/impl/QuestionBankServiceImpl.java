@@ -2,21 +2,31 @@ package com.kun.mianshikun.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.kun.mianshikun.annotation.HotKeyCache;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.constant.CommonConstant;
+import com.kun.mianshikun.constant.HotKeyConstant;
+import com.kun.mianshikun.constant.RedisConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.mapper.QuestionBankMapper;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankQueryRequest;
+import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBank;
+import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankVO;
+import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.model.vo.UserVO;
+import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
+import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.utils.SqlUtils;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +46,12 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private QuestionBankQuestionService questionBankQuestionService;
+
+    @Resource
+    private QuestionService questionService;
 
     @Override
     public void validQuestionBank(QuestionBank questionBank, boolean add) {
@@ -94,6 +110,32 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
             User user = userService.getById(userId);
             UserVO userVO = userService.getUserVO(user);
             questionBankVO.setUser(userVO);
+        }
+        return questionBankVO;
+    }
+
+    @HotKeyCache(key = HotKeyConstant.QUESTION_BANK_DETAIL_KEY + "#id",prefix = RedisConstant.QUESTIONBANK_HOTKEY_KEY)
+    @Override
+    public QuestionBankVO getQuestionBankVOById(Long id, Boolean needQueryQuestionList, Integer current, Integer pageSize) {
+        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
+        QuestionBank questionBank = getById(id);
+        ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
+        QuestionBankVO questionBankVO = getQuestionBankVO(questionBank);
+        log.info("{},{}", current, pageSize);
+        if (Boolean.TRUE.equals(needQueryQuestionList)) {
+            List<QuestionBankQuestion> qbqList = questionBankQuestionService
+                    .list(Wrappers.lambdaQuery(QuestionBankQuestion.class)
+                            .eq(QuestionBankQuestion::getQuestionBankId, id));
+            List<Long> questionIdList = qbqList.stream()
+                    .map(QuestionBankQuestion::getQuestionId).collect(Collectors.toList());
+            log.info("questionId_list:{}", questionIdList);
+            if (!questionIdList.isEmpty()) {
+                Page<Question> questionPage = questionService.page(new Page<>(current, pageSize),
+                        Wrappers.lambdaQuery(Question.class).in(Question::getId, questionIdList));
+                questionBankVO.setQuestionList(questionService.getQuestionVOPage(questionPage));
+            } else {
+                questionBankVO.setQuestionList(new Page<>());
+            }
         }
         return questionBankVO;
     }

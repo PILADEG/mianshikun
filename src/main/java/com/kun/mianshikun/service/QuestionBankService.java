@@ -15,5 +15,7 @@ public interface QuestionBankService extends IService<QuestionBank> {
 
     QuestionBankVO getQuestionBankVO(QuestionBank questionBank);
 
+    QuestionBankVO getQuestionBankVOById(Long id, Boolean needQueryQuestionList, Integer current, Integer pageSize);
+
     Page<QuestionBankVO> getQuestionBankVOPage(Page<QuestionBank> questionBankPage);
 }

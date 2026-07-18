@@ -16,8 +16,8 @@ import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
 import com.kun.mianshikun.model.entity.*;
 import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.model.vo.UserVO;
+import com.kun.mianshikun.mapper.QuestionBankMapper;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
-import com.kun.mianshikun.service.QuestionBankService;
 import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.utils.SqlUtils;
@@ -53,7 +53,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Resource
     private UserService userService;
     @Resource
-    private QuestionBankService questionBankService;
+    private QuestionBankMapper questionBankMapper;
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
     @Override
@@ -150,8 +150,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 List<Long> questionBankIdList = qbq_list.stream()
                         .map(QuestionBankQuestion::getQuestionBankId)
                         .collect(Collectors.toList());
-                List<QuestionBank> questionBankList = questionBankService
-                        .list(new QueryWrapper<QuestionBank>().in("id", questionBankIdList));
+                List<QuestionBank> questionBankList = questionBankMapper.selectList(
+                        new QueryWrapper<QuestionBank>().in("id", questionBankIdList));
                 question.setQuestionBanks(questionBankList);
             }
         }

@@ -1,15 +1,12 @@
 package com.kun.mianshikun.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
-import com.kun.mianshikun.annotation.HotKeyCache;
 import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.DeleteRequest;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
-import com.kun.mianshikun.constant.HotKeyConstant;
 import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
@@ -17,15 +14,10 @@ import com.kun.mianshikun.model.dto.questionBank.QuestionBankAddRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankEditRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankQueryRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankUpdateRequest;
-import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBank;
-import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankVO;
-import com.kun.mianshikun.model.vo.QuestionVO;
-import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
-import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import javax.annotation.Resource;
@@ -34,18 +26,13 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/questionBank")
 @Slf4j
 public class QuestionBankController {
     @Resource
-    private QuestionService questionService;
-    @Resource
     private QuestionBankService questionBankService;
-    @Resource
-    private QuestionBankQuestionService questionBankQuestionService;
     @Resource
     private FileController fileController;
     @Resource
@@ -153,31 +140,11 @@ public class QuestionBankController {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
     }
-    @HotKeyCache(key = HotKeyConstant.QUESTION_BANK_DETAIL_KEY+"#id")
     @GetMapping("/get/vo")
     public BaseResponse<QuestionBankVO> getQuestionBankVOById(Long id, Boolean needQueryQuestionList,
                                                               @RequestParam(defaultValue = "1",required = false) Integer current,
                                                               @RequestParam(defaultValue = "10",required = false) Integer pageSize) {
-        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
-        QuestionBank questionBank = questionBankService.getById(id);
-        ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
-        QuestionBankVO questionBankVO = questionBankService.getQuestionBankVO(questionBank);
-        log.info("{},{}",current, pageSize);
-        if (needQueryQuestionList){
-            List<QuestionBankQuestion> qbq_list = questionBankQuestionService
-                    .list(Wrappers.lambdaQuery(QuestionBankQuestion.class)
-                            .eq(QuestionBankQuestion::getQuestionBankId, id));
-            List<Long> questionId_list = qbq_list.stream()
-                    .map(QuestionBankQuestion::getQuestionId).collect(Collectors.toList());
-            log.info("questionId_list:{}",questionId_list);
-            if (questionId_list != null && questionId_list.size() > 0){
-                Page<Question> questionPage = questionService.page(new Page<>(current, pageSize),
-                        Wrappers.lambdaQuery(Question.class).in(Question::getId, questionId_list));
-                questionBankVO.setQuestionList(questionService.getQuestionVOPage(questionPage));
-            }else{
-                questionBankVO.setQuestionList(new Page<QuestionVO>());
-            }
-        }
+        QuestionBankVO questionBankVO = questionBankService.getQuestionBankVOById(id, needQueryQuestionList, current, pageSize);
         return ResultUtils.success(questionBankVO);
     }
 
