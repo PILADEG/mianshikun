@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
+import com.kun.mianshikun.annotation.HotKeyCache;
 import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.DeleteRequest;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
+import com.kun.mianshikun.constant.HotKeyConstant;
 import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
@@ -151,7 +153,7 @@ public class QuestionBankController {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
     }
-
+    @HotKeyCache(key = HotKeyConstant.QUESTION_BANK_DETAIL_KEY+"#id")
     @GetMapping("/get/vo")
     public BaseResponse<QuestionBankVO> getQuestionBankVOById(Long id, Boolean needQueryQuestionList,
                                                               @RequestParam(defaultValue = "1",required = false) Integer current,
