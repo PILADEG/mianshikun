@@ -1,5 +1,9 @@
 package com.kun.mianshikun.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
@@ -17,6 +21,7 @@ import com.kun.mianshikun.model.dto.questionBank.QuestionBankUpdateRequest;
 import com.kun.mianshikun.model.entity.QuestionBank;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankVO;
+import com.kun.mianshikun.sentinel.SentinelConstant;
 import com.kun.mianshikun.service.QuestionBankService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
@@ -158,7 +163,8 @@ public class QuestionBankController {
                 questionBankService.getQueryWrapper(questionBankQueryRequest));
         return ResultUtils.success(questionBankPage);
     }
-
+    @SentinelResource(value = SentinelConstant.QUESTION_BANK_PAGE_NAME,
+            blockHandler = "handleException")
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionBankVO>> listQuestionBankVOByPage(
             @RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
@@ -169,7 +175,25 @@ public class QuestionBankController {
                 questionBankService.getQueryWrapper(questionBankQueryRequest));
         return ResultUtils.success(questionBankService.getQuestionBankVOPage(questionBankPage));
     }
-
+    @SentinelResource(value = SentinelConstant.QUESTION_BANK_PAGE_NAME,
+            blockHandler = "handleException")
+    @PostMapping("/list/page/vo/sentinel")
+    public BaseResponse<Page<QuestionBankVO>> listQuestionBankVOByPageSentinel(
+            @RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
+        long current = questionBankQueryRequest.getCurrent();
+        long size = questionBankQueryRequest.getPageSize();
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
+        Page<QuestionBank> questionBankPage = questionBankService.page(new Page<>(current, size),
+                questionBankService.getQueryWrapper(questionBankQueryRequest));
+        return ResultUtils.success(questionBankService.getQuestionBankVOPage(questionBankPage));
+    }
+    public BaseResponse<Page<QuestionBankVO>> handleException(
+            QuestionBankQueryRequest questionBankQueryRequest, BlockException ex) {
+        if (ex instanceof DegradeException){
+            return ResultUtils.success(null);
+        }
+        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "当前访问人数过多，请稍后再试");
+    }
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<QuestionBankVO>> listMyQuestionBankVOByPage(
             @RequestBody QuestionBankQueryRequest questionBankQueryRequest) {

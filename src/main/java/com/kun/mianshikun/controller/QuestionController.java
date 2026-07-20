@@ -1,6 +1,12 @@
 package com.kun.mianshikun.controller;
 
 import cn.hutool.json.JSONUtil;
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.EntryType;
+import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.Tracer;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
@@ -19,12 +25,15 @@ import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionVO;
+import com.kun.mianshikun.sentinel.SentinelConstant;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import java.util.List;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -167,13 +176,35 @@ public class QuestionController {
     }
     @PostMapping("/list/page/vo/sentinel")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPageSentinel(
-            @RequestBody QuestionQueryRequest questionQueryRequest) {
-        long current = questionQueryRequest.getCurrent();
-        long size = questionQueryRequest.getPageSize();
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
-        return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+            @RequestBody QuestionQueryRequest questionQueryRequest
+            , HttpServletRequest  request){
+        String address = request.getRemoteAddr();
+        Entry entry = null;
+        try {
+            entry = SphU.entry(SentinelConstant.QUESTION_PAGE_NAME
+                    ,EntryType.IN , 1, address);
+            long current = questionQueryRequest.getCurrent();
+            long size = questionQueryRequest.getPageSize();
+            ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+            Page<Question> questionPage = questionService.page(new Page<>(current, size),
+                    questionService.getQueryWrapper(questionQueryRequest));
+            return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+        } catch (Throwable e) {
+            if (!BlockException.isBlockException(e)){
+                Tracer.trace(e);
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR,e.getMessage());
+            }
+            if (e instanceof DegradeException){
+                return ResultUtils.success(null);
+            }
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR,
+                    "当前访问人数过多，请稍后再试");
+        }
+        finally {
+            if (entry != null){
+                entry.exit(1,address);
+            }
+        }
     }
 
     @PostMapping("/my/list/page/vo")

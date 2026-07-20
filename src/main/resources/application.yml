@@ -46,6 +46,11 @@ spring:
         url-pattern: /druid/*
         login-username: admin
         login-password: 123456
+  cloud:
+    sentinel:
+      transport:
+        dashboard: localhost:8131
+        port: 8719
   # Redis 配置
   # todo 需替换配置
   redis:
