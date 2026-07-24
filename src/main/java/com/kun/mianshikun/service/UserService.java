@@ -14,9 +14,9 @@ public interface UserService extends IService<User> {
 
     long userRegister(String userAccount, String userPassword, String checkPassword);
 
-    UserLoginResponse userLogin(String userAccount, String userPassword);
+    UserLoginResponse userLogin(String userAccount, String userPassword, String userAgent);
 
-    UserLoginResponse userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo);
+    UserLoginResponse userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo, String userAgent);
 
     boolean userLogout(String refreshToken);
 

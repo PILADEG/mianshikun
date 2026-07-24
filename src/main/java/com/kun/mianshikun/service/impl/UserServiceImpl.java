@@ -19,6 +19,7 @@ import com.kun.mianshikun.model.enums.UserRoleEnum;
 import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.UserVO;
 import com.kun.mianshikun.service.UserService;
+import com.kun.mianshikun.util.DeviceUtil;
 import com.kun.mianshikun.util.JwtUtil;
 import com.kun.mianshikun.util.UserContext;
 import com.kun.mianshikun.utils.SqlUtils;
@@ -27,8 +28,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
+
+import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import org.apache.commons.lang3.StringUtils;
@@ -142,7 +146,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public UserLoginResponse userLogin(String userAccount, String userPassword) {
+    public UserLoginResponse userLogin(String userAccount, String userPassword, String userAgent) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -165,11 +169,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-        return buildLoginResponse(user);
+        String deviceType = DeviceUtil.detectDeviceType(userAgent);
+        return buildLoginResponse(user, deviceType);
     }
 
     @Override
-    public UserLoginResponse userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo) {
+    public UserLoginResponse userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo, String userAgent) {
         String unionId = wxOAuth2UserInfo.getUnionId();
         String mpOpenId = wxOAuth2UserInfo.getOpenid();
         // 单机锁
@@ -194,7 +199,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败");
                 }
             }
-            return buildLoginResponse(user);
+            String deviceType = DeviceUtil.detectDeviceType(userAgent);
+            return buildLoginResponse(user, deviceType);
         }
     }
 
@@ -204,9 +210,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
         }
         try {
-            io.jsonwebtoken.Claims claims = jwtUtil.parseRefreshToken(refreshToken);
+            Claims claims = jwtUtil.parseRefreshToken(refreshToken);
             Long userId = jwtUtil.getUserId(claims);
-            stringRedisTemplate.delete("refresh_token:" + userId);
+            String tokenId = jwtUtil.getTokenId(claims);
+            String deviceType = jwtUtil.getDeviceType(claims);
+            String sessionKey = "session:" + userId + ":" + deviceType;
+            String activeTokenId = stringRedisTemplate.opsForValue().get(sessionKey);
+            // 仅当此 refresh token 是当前活跃会话时才删除 session key
+            // 已被踢下线的 token 调用 logout 则不做任何操作
+            if (tokenId.equals(activeTokenId)) {
+                stringRedisTemplate.delete(sessionKey);
+            }
         } catch (Exception e) {
             log.info("logout with invalid refresh token: {}", e.getMessage());
         }
@@ -266,14 +280,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return queryWrapper;
     }
 
-    private UserLoginResponse buildLoginResponse(User user) {
-        String accessToken = jwtUtil.generateAccessToken(user);
-        RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user);
+    private UserLoginResponse buildLoginResponse(User user, String deviceType) {
+        String sessionTokenId = UUID.randomUUID().toString();
 
-        stringRedisTemplate.opsForValue().set(
-                "refresh_token:" + user.getId(),
-                refreshResult.getTokenId(),
-                7, TimeUnit.DAYS);
+        // 检测同设备类型是否存在旧会话，若有则标记为 kicked（不可逆）
+        String sessionKey = "session:" + user.getId() + ":" + deviceType;
+        String oldTokenId = stringRedisTemplate.opsForValue().get(sessionKey);
+        if (oldTokenId != null) {
+            Long ttl = stringRedisTemplate.getExpire(sessionKey, TimeUnit.SECONDS);
+            if (ttl != null && ttl > 0) {
+                String kickedKey = "kicked:" + user.getId() + ":" + deviceType + ":" + oldTokenId;
+                stringRedisTemplate.opsForValue().set(kickedKey, "true", ttl, TimeUnit.SECONDS);
+            }
+        }
+
+        // 设置新会话
+        stringRedisTemplate.opsForValue().set(sessionKey, sessionTokenId, 7, TimeUnit.DAYS);
+
+        // 生成令牌
+        String accessToken = jwtUtil.generateAccessToken(user, sessionTokenId, deviceType);
+        RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user, deviceType, sessionTokenId);
 
         UserLoginResponse response = new UserLoginResponse();
         response.setAccessToken(accessToken);

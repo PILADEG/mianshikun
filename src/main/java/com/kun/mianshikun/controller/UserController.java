@@ -1,5 +1,12 @@
 package com.kun.mianshikun.controller;
 
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.EntryType;
+import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.Tracer;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
+import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowException;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
 import com.kun.mianshikun.common.BaseResponse;
@@ -18,6 +25,7 @@ import com.kun.mianshikun.model.dto.user.UserUpdateMyRequest;
 import com.kun.mianshikun.model.dto.user.UserLoginResponse;
 import com.kun.mianshikun.model.dto.user.UserUpdateRequest;
 import com.kun.mianshikun.model.entity.User;
+import com.kun.mianshikun.sentinel.SentinelConstant;
 import com.kun.mianshikun.util.UserContext;
 import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.UserVO;
@@ -26,6 +34,9 @@ import com.kun.mianshikun.service.UserService;
 import java.util.List;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.swing.text.BadLocationException;
+
+import com.kun.mianshikun.utils.NetUtils;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
@@ -80,18 +91,48 @@ public class UserController {
      * @return
      */
     @PostMapping("/register")
-    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
-        if (userRegisterRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest,
+    HttpServletRequest  request) {
+        String address = NetUtils.getIpAddress( request);
+        Entry entry = null;
+        try {
+            entry = SphU.entry(SentinelConstant.USER_REGISTER,
+                    EntryType.IN, 1, address);
+            // Your logic here.
+            if (userRegisterRequest == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR);
+            }
+            String userAccount = userRegisterRequest.getUserAccount();
+            String userPassword = userRegisterRequest.getUserPassword();
+            String checkPassword = userRegisterRequest.getCheckPassword();
+            if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
+                return null;
+            }
+            long result = userService.userRegister(userAccount, userPassword, checkPassword);
+            return ResultUtils.success(result);
+        } catch (Throwable ex) {
+            // Handle request rejection.
+            ex.printStackTrace();
+            if (!BlockException.isBlockException( ex)){
+                if (!(ex instanceof BusinessException)){
+                    Tracer.trace(ex);
+                    log.info("--------已上报--------");
+                }
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, ex.getMessage());
+            }
+            if (ex instanceof ParamFlowException){
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "注册失败，请求流量超出限制");
+            }
+            if (ex instanceof DegradeException){
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误,请稍后再试");
+            }
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "注册失败，系统错误");
+        } finally {
+            if (entry != null) {
+                entry.exit(1, address);
+            }
         }
-        String userAccount = userRegisterRequest.getUserAccount();
-        String userPassword = userRegisterRequest.getUserPassword();
-        String checkPassword = userRegisterRequest.getCheckPassword();
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return null;
-        }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
-        return ResultUtils.success(result);
+
     }
 
     /**
@@ -102,23 +143,55 @@ public class UserController {
      * @return
      */
     @PostMapping("/login")
-    public BaseResponse<UserLoginResponse> userLogin(@RequestBody UserLoginRequest userLoginRequest) {
-        if (userLoginRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    public BaseResponse<UserLoginResponse> userLogin(@RequestBody UserLoginRequest userLoginRequest,
+                                                      HttpServletRequest request) {
+        String address = NetUtils.getIpAddress( request);
+        Entry entry = null;
+        try {
+            entry = SphU.entry(SentinelConstant.USER_LOGIN,
+                    EntryType.IN, 1, address);
+            // Your logic here.
+            if (userLoginRequest == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR);
+            }
+            String userAccount = userLoginRequest.getUserAccount();
+            String userPassword = userLoginRequest.getUserPassword();
+            if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR);
+            }
+            String userAgent = request.getHeader("User-Agent");
+            return ResultUtils.success(userService.userLogin(userAccount, userPassword, userAgent));
+        } catch (Throwable ex) {
+            // Handle request rejection.
+            ex.printStackTrace();
+            if (!BlockException.isBlockException( ex)){
+                if (!(ex instanceof BusinessException)){
+                    Tracer.trace(ex);
+                    log.info("--------已上报--------");
+                }
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, ex.getMessage());
+            }
+            if (ex instanceof ParamFlowException){
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "登录失败，请求流量超出限制");
+            }
+            if (ex instanceof DegradeException){
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误,请稍后再试");
+            }
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
+        } finally {
+            if (entry != null) {
+                entry.exit(1, address);
+            }
         }
-        String userAccount = userLoginRequest.getUserAccount();
-        String userPassword = userLoginRequest.getUserPassword();
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        return ResultUtils.success(userService.userLogin(userAccount, userPassword));
+
     }
 
     /**
      * 用户登录（微信开放平台）
      */
     @GetMapping("/login/wx_open")
-    public BaseResponse<UserLoginResponse> userLoginByWxOpen(@RequestParam("code") String code) {
+    public BaseResponse<UserLoginResponse> userLoginByWxOpen(@RequestParam("code") String code,
+                                                              HttpServletRequest request) {
         try {
             WxMpService wxService = wxOpenConfig.getWxMpService();
             WxOAuth2AccessToken accessToken = wxService.getOAuth2Service().getAccessToken(code);
@@ -128,7 +201,8 @@ public class UserController {
             if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
             }
-            return ResultUtils.success(userService.userLoginByMpOpen(userInfo));
+            String userAgent = request.getHeader("User-Agent");
+            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, userAgent));
         } catch (Exception e) {
             log.error("userLoginByWxOpen error", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");

@@ -7,6 +7,7 @@ import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.Tracer;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
+import com.kun.mianshikun.constant.RateLimitModule;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
@@ -17,6 +18,8 @@ import com.kun.mianshikun.common.ResultUtils;
 import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
+import com.kun.mianshikun.interceptor.JwtAuthInterceptor;
+import com.kun.mianshikun.model.dto.ratelimit.RateLimitResult;
 import com.kun.mianshikun.model.dto.question.QuestionAddRequest;
 import com.kun.mianshikun.model.dto.question.QuestionEditRequest;
 import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
@@ -28,12 +31,14 @@ import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.sentinel.SentinelConstant;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionService;
+import com.kun.mianshikun.service.RateLimiter;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import java.util.List;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
+import com.kun.mianshikun.utils.NetUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -55,6 +60,8 @@ public class QuestionController {
     private UserService userService;
     @Resource
     private QuestionBankQuestionService questionBankQuestionService;
+    @Resource
+    private RateLimiter rateLimiter;
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -135,13 +142,41 @@ public class QuestionController {
     }
 
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionVO> getQuestionVOById(Long id) {
+    public BaseResponse<QuestionVO> getQuestionVOById(Long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
+        String address = NetUtils.getIpAddress(request);
+        Long userId = UserContext.getUserId();
+        log.info("address: {}, userId:{}", address, userId);
+
+        // Redis Lua 限流检查
+        RateLimitResult rateResult = rateLimiter.check(
+                RateLimitModule.QUESTION, address, userId, 20, 2);
+
+        log.info("rate_limit|module={}|ip={}|status={}|qps={}|viol={}",
+                RateLimitModule.QUESTION, address,
+                rateResult.getStatus(), rateResult.getQpsCount(),
+                rateResult.getViolationCount());
+
+        if (!rateResult.isAllowed()) {
+            if (rateResult.getViolationCount()==1){
+                //发短信警告，待完善
+                log.warn("{}用户疑似爬虫", userId);
+            }
+            if (rateResult.isBanRequired() && userId != null) {
+                // 违规达到封号阈值，异步执行封号
+                userService.lambdaUpdate()
+                        .eq(User::getId, userId)
+                        .set(User::getUserRole, "ban")
+                        .update();
+                log.warn("user banned due to rate limit violation, userId={}", userId);
+            }
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "请求过于频繁，请稍后再试");
+        }
+
         Question question = questionService.getById(id);
         ThrowUtils.throwIf(question == null, ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(questionService.getQuestionVO(question));
     }
-
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
@@ -178,14 +213,14 @@ public class QuestionController {
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPageSentinel(
             @RequestBody QuestionQueryRequest questionQueryRequest
             , HttpServletRequest  request){
-        String address = request.getRemoteAddr();
+        String address = NetUtils.getIpAddress( request);
         Entry entry = null;
+        long size = questionQueryRequest.getPageSize();
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         try {
             entry = SphU.entry(SentinelConstant.QUESTION_PAGE_NAME
                     ,EntryType.IN , 1, address);
             long current = questionQueryRequest.getCurrent();
-            long size = questionQueryRequest.getPageSize();
-            ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
             Page<Question> questionPage = questionService.page(new Page<>(current, size),
                     questionService.getQueryWrapper(questionQueryRequest));
             return ResultUtils.success(questionService.getQuestionVOPage(questionPage));

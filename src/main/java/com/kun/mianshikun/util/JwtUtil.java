@@ -29,10 +29,12 @@ public class JwtUtil {
         this.refreshTokenExpire = refreshTokenExpire;
     }
 
-    public String generateAccessToken(User user) {
+    public String generateAccessToken(User user, String tokenId, String deviceType) {
         Date now = new Date();
         return Jwts.builder()
                 .claim("userId", user.getId())
+                .claim("tokenId", tokenId)
+                .claim("deviceType", deviceType)
                 .claim("userRole", user.getUserRole())
                 .claim("unionId", user.getUnionId())
                 .claim("mpOpenId", user.getMpOpenId())
@@ -44,12 +46,12 @@ public class JwtUtil {
                 .compact();
     }
 
-    public RefreshTokenResult generateRefreshToken(User user) {
+    public RefreshTokenResult generateRefreshToken(User user, String deviceType, String tokenId) {
         Date now = new Date();
-        String tokenId = UUID.randomUUID().toString();
         String token = Jwts.builder()
                 .claim("userId", user.getId())
                 .claim("tokenId", tokenId)
+                .claim("deviceType", deviceType)
                 .claim("unionId", user.getUnionId())
                 .claim("mpOpenId", user.getMpOpenId())
                 .setIssuedAt(now)
@@ -83,5 +85,9 @@ public class JwtUtil {
 
     public String getUserRole(Claims claims) {
         return claims.get("userRole", String.class);
+    }
+
+    public String getDeviceType(Claims claims) {
+        return claims.get("deviceType", String.class);
     }
 }

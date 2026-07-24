@@ -51,6 +51,28 @@ spring:
       transport:
         dashboard: localhost:8131
         port: 8719
+      datasource:
+        ds-flow:
+          nacos:
+            server-addr: 127.0.0.1:8848
+            data-id: sentinel-flow-rules
+            group-id: DEFAULT_GROUP
+            data-type: json
+            rule-type: flow
+        ds-degrade:
+          nacos:
+            server-addr: 127.0.0.1:8848
+            data-id: sentinel-degrade-rules
+            group-id: DEFAULT_GROUP
+            data-type: json
+            rule-type: degrade
+        ds-param-flow:
+          nacos:
+            server-addr: 127.0.0.1:8848
+            data-id: sentinel-param-flow-rules
+            group-id: DEFAULT_GROUP
+            data-type: json
+            rule-type: param-flow
   # Redis 配置
   # todo 需替换配置
   redis:
