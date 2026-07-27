@@ -19,11 +19,8 @@ import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.interceptor.JwtAuthInterceptor;
+import com.kun.mianshikun.model.dto.question.*;
 import com.kun.mianshikun.model.dto.ratelimit.RateLimitResult;
-import com.kun.mianshikun.model.dto.question.QuestionAddRequest;
-import com.kun.mianshikun.model.dto.question.QuestionEditRequest;
-import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
-import com.kun.mianshikun.model.dto.question.QuestionUpdateRequest;
 import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
@@ -140,7 +137,6 @@ public class QuestionController {
         boolean result = questionService.updateById(question);
         return ResultUtils.success(result);
     }
-
     @GetMapping("/get/vo")
     public BaseResponse<QuestionVO> getQuestionVOById(Long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
@@ -267,20 +263,13 @@ public class QuestionController {
     }
 
     @PostMapping("/delete/batch")
-    public BaseResponse<Boolean> batchDeleteQuestions(@RequestBody List<Long> questionIdList) {
-        ThrowUtils.throwIf(questionIdList == null || questionIdList.isEmpty(), ErrorCode.PARAMS_ERROR);
-        Long currentUserId = UserContext.getUserId();
-        String currentUserRole = UserContext.getUserRole();
-        questionIdList.forEach(id -> {
-            Question oldQuestion = questionService.getById(id);
-            if (oldQuestion != null) {
-                if (!oldQuestion.getUserId().equals(currentUserId) && !UserConstant.ADMIN_ROLE.equals(currentUserRole)) {
-                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限删除题目: " + id);
-                }
-                questionService.removeById(id);
-            }
-        });
-        return ResultUtils.success(true);
+    public BaseResponse<Boolean> batchDeleteQuestions(
+            @RequestBody QuestionBatchDeleteRequest questionIdList) {
+        ThrowUtils.throwIf(questionIdList.getQuestionIdList() == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(questionIdList.getQuestionIdList().isEmpty()
+                , ErrorCode.PARAMS_ERROR);
+        Boolean result = questionService.batchRemoveQuestion(questionIdList.getQuestionIdList());
+        return ResultUtils.success(result);
     }
 
     @PostMapping("/ai/generate/question")

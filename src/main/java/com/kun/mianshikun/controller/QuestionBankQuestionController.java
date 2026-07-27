@@ -10,14 +10,12 @@ import com.kun.mianshikun.common.ResultUtils;
 import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
-import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionAddRequest;
-import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionEditRequest;
-import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionQueryRequest;
-import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionUpdateRequest;
+import com.kun.mianshikun.model.dto.questionBankQuestion.*;
 import com.kun.mianshikun.model.entity.Question;
 import com.kun.mianshikun.model.entity.QuestionBank;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
+import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.QuestionBankQuestionVO;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
@@ -26,7 +24,8 @@ import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
 import java.util.List;
 import javax.annotation.Resource;
-import lombok.Data;
+import javax.servlet.http.HttpServletRequest;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,7 +78,9 @@ public class QuestionBankQuestionController {
         long id = deleteRequest.getId();
         QuestionBankQuestion old = questionBankQuestionService.getById(id);
         ThrowUtils.throwIf(old == null, ErrorCode.NOT_FOUND_ERROR);
-        User oldUser = userService.getById(old.getUserId());
+        Question oldQuestion = questionService.getById(old.getQuestionId());
+        ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
+        User oldUser = userService.getById(oldQuestion.getUserId());
         if (!old.getUserId().equals(UserContext.getUserId()) && !UserConstant.ADMIN_ROLE.equals(UserContext.getUserRole())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
@@ -179,7 +180,9 @@ public class QuestionBankQuestionController {
         queryWrapper.eq("questionId", removeRequest.getQuestionId());
         QuestionBankQuestion questionBankQuestion = questionBankQuestionService.getOne(queryWrapper);
         ThrowUtils.throwIf(questionBankQuestion == null, ErrorCode.NOT_FOUND_ERROR);
-        User oldUser = userService.getById(questionBankQuestion.getUserId());
+        Question question = questionService.getById(questionBankQuestion.getQuestionId());
+        ThrowUtils.throwIf(question == null, ErrorCode.NOT_FOUND_ERROR);
+        User oldUser = userService.getById(question.getUserId());
         if (!oldUser.getId().equals(UserContext.getUserId())){
             ThrowUtils.throwIf(oldUser.getUserRole().equals(UserConstant.ADMIN_ROLE),ErrorCode.NO_AUTH_ERROR);
         }
@@ -189,20 +192,16 @@ public class QuestionBankQuestionController {
 
     @PostMapping("/add/batch")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> batchAddQuestionsToBank(@RequestBody QuestionBankQuestionBatchRequest batchRequest) {
+    public BaseResponse<Boolean> batchAddQuestionsToBank(@RequestBody QuestionBankQuestionBatchRequest batchRequest,
+                                                         HttpServletRequest  request) {
         ThrowUtils.throwIf(batchRequest == null || batchRequest.getQuestionBankId() == null
                 || batchRequest.getQuestionIdList() == null || batchRequest.getQuestionIdList().isEmpty(),
                 ErrorCode.PARAMS_ERROR);
-        Long userId = UserContext.getUserId();
-        List<Long> questionIdList = batchRequest.getQuestionIdList();
-        for (Long questionId : questionIdList) {
-            QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
-            questionBankQuestion.setQuestionBankId(batchRequest.getQuestionBankId());
-            questionBankQuestion.setQuestionId(questionId);
-            questionBankQuestion.setUserId(userId);
-            questionBankQuestionService.save(questionBankQuestion);
-        }
-        return ResultUtils.success(true);
+        LoginUserVO loginUser = UserContext.getLoginUser();
+        User user = new User();
+        BeanUtils.copyProperties(loginUser, user, User.class);
+        Boolean result =questionBankQuestionService.batchAddQuestionBankQuestion(batchRequest,user);
+        return ResultUtils.success(result);
     }
 
     @PostMapping("/remove/batch")
@@ -212,23 +211,10 @@ public class QuestionBankQuestionController {
         ThrowUtils.throwIf(batchRequest == null || batchRequest.getQuestionBankId() == null
                 || batchRequest.getQuestionIdList() == null || batchRequest.getQuestionIdList().isEmpty(),
                 ErrorCode.PARAMS_ERROR);
-        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<QuestionBankQuestion> queryWrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
-        queryWrapper.eq("questionBankId", batchRequest.getQuestionBankId());
-        queryWrapper.in("questionId", batchRequest.getQuestionIdList());
-        boolean result = questionBankQuestionService.remove(queryWrapper);
+        LoginUserVO loginUser = UserContext.getLoginUser();
+        User user = new User();
+        BeanUtils.copyProperties(loginUser, user, User.class);
+        Boolean result =questionBankQuestionService.batchRemoveQuestionBankQuestion(batchRequest,user);
         return ResultUtils.success(result);
-    }
-
-    @Data
-    public static class QuestionBankQuestionRemoveRequest {
-        private Long questionBankId;
-        private Long questionId;
-    }
-
-    @Data
-    public static class QuestionBankQuestionBatchRequest {
-        private Long questionBankId;
-        private List<Long> questionIdList;
     }
 }

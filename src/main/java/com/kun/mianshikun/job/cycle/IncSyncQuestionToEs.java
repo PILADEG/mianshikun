@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 // todo 取消注释开启任务
-//@Component
+@Component
 @Slf4j
 public class IncSyncQuestionToEs {
 
@@ -54,7 +54,6 @@ public class IncSyncQuestionToEs {
             log.info("IncSyncQuestionToEs end, total {}", total);
         } catch (Exception e) {
             log.error("IncSyncQuestionToEs error", e);
-            throw new RuntimeException(e);
         }
     }
 }

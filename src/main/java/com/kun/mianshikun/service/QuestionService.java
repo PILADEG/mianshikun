@@ -20,4 +20,5 @@ public interface QuestionService extends IService<Question> {
     Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage);
     List<Question> getQuestionBanks(List<Question> questions);
     Page<Question> searchFromES(QuestionQueryRequest questionQueryRequest);
+    Boolean batchRemoveQuestion(List<Long> questionIdList);
 }

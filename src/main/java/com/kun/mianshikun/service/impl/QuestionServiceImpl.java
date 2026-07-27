@@ -169,6 +169,25 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean batchRemoveQuestion(List<Long> questionIdList) {
+        ThrowUtils.throwIf(questionIdList.isEmpty(), ErrorCode.PARAMS_ERROR, "参数为空");
+        try {
+            questionBankQuestionService.remove(new QueryWrapper<QuestionBankQuestion>()
+                    .in("questionId", questionIdList));
+        } catch (Exception e) {
+            log.error("删除题目关联失败, questionIdList={}", questionIdList, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除题目关联失败");
+        }
+        try {
+            return remove(new QueryWrapper<Question>().in("id", questionIdList));
+        } catch (Exception e) {
+            log.error("删除题目失败, questionIdList={}", questionIdList, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "批量删除题目失败");
+        }
+    }
+
     private Page<Question> searchFromEsInternal(QuestionQueryRequest questionQueryRequest) {
         Long id = questionQueryRequest.getId();
         Long notId = questionQueryRequest.getNotId();
@@ -185,7 +204,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         String sortOrder = questionQueryRequest.getSortOrder();
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         // 过滤
-        boolQueryBuilder.filter(QueryBuilders.termQuery("isDelete", 0));
+        boolQueryBuilder.filter(QueryBuilders.termQuery("isDelete", "0"));
         if (id != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("id", id));
         }

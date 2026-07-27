@@ -3,9 +3,13 @@ package com.kun.mianshikun.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionBatchRequest;
 import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionQueryRequest;
+import com.kun.mianshikun.model.dto.questionBankQuestion.QuestionBankQuestionRemoveRequest;
 import com.kun.mianshikun.model.entity.QuestionBankQuestion;
+import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankQuestionVO;
+import java.util.List;
 
 public interface QuestionBankQuestionService extends IService<QuestionBankQuestion> {
 
@@ -16,4 +20,9 @@ public interface QuestionBankQuestionService extends IService<QuestionBankQuesti
     QuestionBankQuestionVO getQuestionBankQuestionVO(QuestionBankQuestion questionBankQuestion);
 
     Page<QuestionBankQuestionVO> getQuestionBankQuestionVOPage(Page<QuestionBankQuestion> questionBankQuestionPage);
+    Boolean batchAddQuestionBankQuestion(QuestionBankQuestionBatchRequest batchRequest, User user);
+
+    Boolean batchAddQuestionBankQuestionToInner(List<QuestionBankQuestion> questionBankQuestions);
+
+    Boolean batchRemoveQuestionBankQuestion(QuestionBankQuestionBatchRequest batchRequest, User user);
 }
