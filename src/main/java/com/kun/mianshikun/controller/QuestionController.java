@@ -212,7 +212,7 @@ public class QuestionController {
         String address = NetUtils.getIpAddress( request);
         Entry entry = null;
         long size = questionQueryRequest.getPageSize();
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
         try {
             entry = SphU.entry(SentinelConstant.QUESTION_PAGE_NAME
                     ,EntryType.IN , 1, address);

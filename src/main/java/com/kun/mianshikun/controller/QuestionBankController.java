@@ -5,6 +5,7 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kun.mianshikun.annotation.AuthCheck;
 import com.kun.mianshikun.common.BaseResponse;
@@ -19,9 +20,11 @@ import com.kun.mianshikun.model.dto.questionBank.QuestionBankEditRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankQueryRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankUpdateRequest;
 import com.kun.mianshikun.model.entity.QuestionBank;
+import com.kun.mianshikun.model.entity.QuestionBankQuestion;
 import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionBankVO;
 import com.kun.mianshikun.sentinel.SentinelConstant;
+import com.kun.mianshikun.service.QuestionBankQuestionService;
 import com.kun.mianshikun.service.QuestionBankService;
 import com.kun.mianshikun.service.UserService;
 import com.kun.mianshikun.util.UserContext;
@@ -40,6 +43,8 @@ public class QuestionBankController {
     private QuestionBankService questionBankService;
     @Resource
     private FileController fileController;
+    @Resource
+    private QuestionBankQuestionService questionBankQuestionService;
     @Resource
     private UserService userService;
     @PostMapping("/add")
@@ -87,6 +92,9 @@ public class QuestionBankController {
                     && !oldQuestionBank.getPicture().isEmpty()){
                 fileController.deleteFile(oldQuestionBank.getPicture());
             }
+            boolean q_result = questionBankQuestionService
+                    .remove(new UpdateWrapper<QuestionBankQuestion>()
+                            .eq("questionBankId", id));
             boolean result = questionBankService.removeById(id);
             return ResultUtils.success(result);
         } catch (Exception e) {
