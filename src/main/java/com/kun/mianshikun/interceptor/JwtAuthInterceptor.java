@@ -30,8 +30,6 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     private static final String ATTR_USER_ROLE = "JWT_USER_ROLE";
     private static final String ATTR_USER_NAME = "JWT_USER_NAME";
     private static final String ATTR_USER_AVATAR = "JWT_USER_AVATAR";
-    private static final String ATTR_UNION_ID = "JWT_UNION_ID";
-    private static final String ATTR_MP_OPEN_ID = "JWT_MP_OPEN_ID";
 
     @Resource
     private JwtUtil jwtUtil;
@@ -242,8 +240,6 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         request.setAttribute(ATTR_USER_ROLE, claims.get("userRole", String.class));
         request.setAttribute(ATTR_USER_NAME, claims.get("userName", String.class));
         request.setAttribute(ATTR_USER_AVATAR, claims.get("userAvatar", String.class));
-        request.setAttribute(ATTR_UNION_ID, claims.get("unionId", String.class));
-        request.setAttribute(ATTR_MP_OPEN_ID, claims.get("mpOpenId", String.class));
     }
 
     private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**面试鸭** (mianshikun) — 基于 Spring Boot 2.7.x 的面试刷题平台后端。核心业务：题目管理、题库管理、模拟面试（AI 对话）、帖子/点赞/收藏、微信公众平台集成。
+**面试鸭** (mianshikun) — 基于 Spring Boot 2.7.x 的面试刷题平台后端。核心业务：题目管理、题库管理、模拟面试（AI 对话）。
 
 **基础包**: `com.kun.mianshikun`
 
@@ -48,14 +48,10 @@ controller → service(impl) → mapper → mysql
 
 | 模块 | 说明 | 关键表 |
 |------|------|--------|
-| User | 注册/登录(JWT)/微信开放平台登录/签到 | user |
+| User | 注册/登录(JWT)/签到 | user |
 | Question | 题目 CRUD + ES 搜索 + AI 生成(待接入) | question |
 | QuestionBank | 题库 CRUD，与题目多对多关联 | question_bank, question_bank_question |
-| Post | 帖子 CRUD + ES 搜索 | post |
-| PostFavour | 帖子收藏 | post_favour |
-| PostThumb | 帖子点赞 | post_thumb |
 | File | 腾讯云 COS 文件上传 | — |
-| WX MP | 微信公众号消息/菜单 | — |
 
 ### 公共组件
 
@@ -63,21 +59,21 @@ controller → service(impl) → mapper → mysql
 - **exception/** — `BusinessException` (自定义异常), `GlobalExceptionHandler` (全局处理 + JSON 解析错误增强)
 - **annotation/AuthCheck** + **aop/AuthInterceptor** — 基于注解的权限校验 (user/admin/ban)
 - **aop/LogInterceptor** — 全局请求日志（AOP 记录耗时+参数）
-- **config/** — `CorsConfig` (跨域), `CosClientConfig` (对象存储), `MyBatisPlusConfig` (分页), `JsonConfig` (Long → String), `WebMvcConfig` (JWT 拦截器注册), `WxOpenConfig`
+- **config/** — `CorsConfig` (跨域), `CosClientConfig` (对象存储), `MyBatisPlusConfig` (分页), `JsonConfig` (Long → String), `WebMvcConfig` (JWT 拦截器注册)
 - **interceptor/JwtAuthInterceptor** — JWT 访问令牌校验 + 自动刷新拦截器
 - **util/JwtUtil** — JWT 令牌生成/解析
 - **util/UserContext** — 通过 `RequestContextHolder` 获取当前登录用户信息
 - **constant/** — `UserConstant` (角色/状态), `CommonConstant` (排序), `FileConstant` (COS 域名)
-- **job/** — `FullSyncPostToEs`, `IncSyncPostToEs` (ES 同步定时任务)
+- **job/** — `FullSyncQuestionToEs`, `IncSyncQuestionToEs` (ES 同步定时任务)
 - **manager/** — `CosManager` (腾讯云 COS 封装)
-- **esdao/** — `PostEsDao` (Elasticsearch Repository)
+- **esdao/** — `QuestionEsDao` (Elasticsearch Repository)
 - **generate/CodeGenerator** — 代码生成器
 
 ### 数据存储
 
 - **MySQL** — 主数据库，MyBatis + MyBatis-Plus (分页插件)
 - **Redis** — 必须（存储 JWT refresh token），默认本地 `localhost:6379`
-- **Elasticsearch** — Post/Question 全文搜索，默认关闭（需取消 `application.yml` 注释）
+- **Elasticsearch** — Question 全文搜索，默认关闭（需取消 `application.yml` 注释）
 - **腾讯云 COS** — 文件/图片存储
 
 ### 多环境配置
@@ -270,7 +266,7 @@ interface PageRequest {
 #### 3. 权限体系
 
 - `@AuthCheck(mustRole = "admin")` — 仅管理员可访问（如 Question/QuestionBank CRUD）
-- 无注解的接口 — 登录用户均可访问（如 Post/PostFavour/PostThumb）
+- 无注解的接口 — 登录用户均可访问
 - `/user/add`、`/user/delete`、`/user/update` — 仅管理员
 
 **注意**：JWT 拦截器拦截了除登录/注册外的所有路径，即使接口无 `@AuthCheck` 注解也需带 `Authorization` 头。
@@ -319,7 +315,7 @@ Post 和 Question 的 tags 字段在数据库中存储为 JSON 字符串，在 V
 
 #### 8. ES 搜索
 
-Post 和 Question 支持 ES 搜索，通过 `/post/search/page/vo` 和 `/question/search/page/vo` 接口。
+Question 支持 ES 搜索，通过 `/question/search/page/vo` 接口。
 
 默认 ES 配置被注释，启用需：
 1. 取消 `application.yml` 中 elasticsearch 配置注释

@@ -10,7 +10,6 @@ import com.kun.mianshikun.constant.CommonConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
 import com.kun.mianshikun.mapper.QuestionMapper;
-import com.kun.mianshikun.model.dto.post.PostEsDTO;
 import com.kun.mianshikun.model.dto.question.QuestionEsDTO;
 import com.kun.mianshikun.model.dto.question.QuestionQueryRequest;
 import com.kun.mianshikun.model.entity.*;

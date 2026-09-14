@@ -33,6 +33,7 @@ mvnw.cmd
 /.nb-gradle/
 build/
 /src/main/java/com/kun/mianshikun/wxmp
+/src/main/java/com/kun/mianshikun/controller/WxMpController.java
 !**/src/main/**/build/
 !**/src/test/**/build/
 

@@ -19,9 +19,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/user/register",
                         "/user/login",
-                        "/user/login/wx_open",
-                        "/",
-                        "/setMenu",
                         "/doc.html",
                         "/swagger-resources/**",
                         "/webjars/**",

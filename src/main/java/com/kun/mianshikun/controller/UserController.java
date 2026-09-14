@@ -13,7 +13,6 @@ import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.DeleteRequest;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
-import com.kun.mianshikun.config.WxOpenConfig;
 import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
@@ -38,9 +37,6 @@ import javax.swing.text.BadLocationException;
 
 import com.kun.mianshikun.utils.NetUtils;
 import lombok.extern.slf4j.Slf4j;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
-import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
-import me.chanjar.weixin.mp.api.WxMpService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.DigestUtils;
@@ -64,9 +60,6 @@ public class UserController {
 
     @Resource
     private UserService userService;
-
-    @Resource
-    private WxOpenConfig wxOpenConfig;
 
     // region 登录相关
     @GetMapping("/signIn")
@@ -184,29 +177,6 @@ public class UserController {
             }
         }
 
-    }
-
-    /**
-     * 用户登录（微信开放平台）
-     */
-    @GetMapping("/login/wx_open")
-    public BaseResponse<UserLoginResponse> userLoginByWxOpen(@RequestParam("code") String code,
-                                                              HttpServletRequest request) {
-        try {
-            WxMpService wxService = wxOpenConfig.getWxMpService();
-            WxOAuth2AccessToken accessToken = wxService.getOAuth2Service().getAccessToken(code);
-            WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, code);
-            String unionId = userInfo.getUnionId();
-            String mpOpenId = userInfo.getOpenid();
-            if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-            }
-            String userAgent = request.getHeader("User-Agent");
-            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, userAgent));
-        } catch (Exception e) {
-            log.error("userLoginByWxOpen error", e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-        }
     }
 
     /**

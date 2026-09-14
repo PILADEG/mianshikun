@@ -8,15 +8,12 @@ import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.UserVO;
 import java.util.List;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 
 public interface UserService extends IService<User> {
 
     long userRegister(String userAccount, String userPassword, String checkPassword);
 
     UserLoginResponse userLogin(String userAccount, String userPassword, String userAgent);
-
-    UserLoginResponse userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo, String userAgent);
 
     boolean userLogout(String refreshToken);
 
