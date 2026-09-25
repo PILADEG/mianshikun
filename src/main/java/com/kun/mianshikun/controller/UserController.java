@@ -28,6 +28,7 @@ import com.kun.mianshikun.sentinel.SentinelConstant;
 import com.kun.mianshikun.util.UserContext;
 import com.kun.mianshikun.model.vo.LoginUserVO;
 import com.kun.mianshikun.model.vo.UserVO;
+import com.kun.mianshikun.manager.UserSessionManager;
 import com.kun.mianshikun.service.UserService;
 
 import java.util.List;
@@ -60,6 +61,9 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private UserSessionManager userSessionManager;
 
     // region 登录相关
     @GetMapping("/signIn")
@@ -377,6 +381,8 @@ public class UserController {
         user.setId(userId);
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 会话是用户资料的权威副本：资料变更后同步，避免仍读到旧昵称/头像
+        userSessionManager.syncUserInfo(userId, UserContext.getDeviceType(), userService.getById(userId));
         return ResultUtils.success(true);
     }
 

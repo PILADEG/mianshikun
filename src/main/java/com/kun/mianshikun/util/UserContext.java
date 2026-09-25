@@ -13,7 +13,7 @@ public class UserContext {
     private static final String ATTR_USER_NAME = "JWT_USER_NAME";
     private static final String ATTR_USER_AVATAR = "JWT_USER_AVATAR";
     private static final String ATTR_UNION_ID = "JWT_UNION_ID";
-    private static final String ATTR_MP_OPEN_ID = "JWT_MP_OPEN_ID";
+    private static final String ATTR_DEVICE_TYPE = "JWT_DEVICE_TYPE";
 
     private UserContext() {}
 
@@ -43,6 +43,12 @@ public class UserContext {
     public static String getUserAvatar() {
         HttpServletRequest request = getRequest();
         return request != null ? (String) request.getAttribute(ATTR_USER_AVATAR) : null;
+    }
+
+    /** 当前请求所属设备类型（由 JwtAuthInterceptor 注入） */
+    public static String getDeviceType() {
+        HttpServletRequest request = getRequest();
+        return request != null ? (String) request.getAttribute(ATTR_DEVICE_TYPE) : null;
     }
 
     public static LoginUserVO getLoginUser() {

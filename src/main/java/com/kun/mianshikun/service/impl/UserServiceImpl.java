@@ -10,8 +10,10 @@ import com.kun.mianshikun.constant.RedisConstant;
 import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
+import com.kun.mianshikun.manager.UserSessionManager;
 import com.kun.mianshikun.mapper.UserMapper;
 import com.kun.mianshikun.model.dto.user.RefreshTokenResult;
+import com.kun.mianshikun.model.dto.user.SessionInfo;
 import com.kun.mianshikun.model.dto.user.UserLoginResponse;
 import com.kun.mianshikun.model.dto.user.UserQueryRequest;
 import com.kun.mianshikun.model.entity.User;
@@ -59,6 +61,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private JwtUtil jwtUtil;
+
+    @Resource
+    private UserSessionManager userSessionManager;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -168,6 +173,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
+        // 封号校验：被封禁账号禁止登录
+        if (UserRoleEnum.BAN.getValue().equals(user.getUserRole())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "该用户已被封号，禁止登录");
+        }
         String deviceType = DeviceUtil.detectDeviceType(userAgent);
         return buildLoginResponse(user, deviceType);
     }
@@ -182,12 +191,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             Long userId = jwtUtil.getUserId(claims);
             String tokenId = jwtUtil.getTokenId(claims);
             String deviceType = jwtUtil.getDeviceType(claims);
-            String sessionKey = "session:" + userId + ":" + deviceType;
-            String activeTokenId = stringRedisTemplate.opsForValue().get(sessionKey);
-            // 仅当此 refresh token 是当前活跃会话时才删除 session key
+            if (userId == null || StringUtils.isBlank(deviceType)) {
+                return true;
+            }
+            // 仅当此 refresh token 是当前活跃会话时才删除会话
             // 已被踢下线的 token 调用 logout 则不做任何操作
-            if (tokenId.equals(activeTokenId)) {
-                stringRedisTemplate.delete(sessionKey);
+            SessionInfo session = userSessionManager.getSession(userId, deviceType, true);
+            if (session != null && tokenId.equals(session.getTokenId())) {
+                userSessionManager.deleteSession(userId, deviceType);
             }
         } catch (Exception e) {
             log.info("logout with invalid refresh token: {}", e.getMessage());
@@ -247,23 +258,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private UserLoginResponse buildLoginResponse(User user, String deviceType) {
         String sessionTokenId = UUID.randomUUID().toString();
 
-        // 检测同设备类型是否存在旧会话，若有则标记为 kicked（不可逆）
-        String sessionKey = "session:" + user.getId() + ":" + deviceType;
-        String oldTokenId = stringRedisTemplate.opsForValue().get(sessionKey);
-        if (oldTokenId != null) {
-            Long ttl = stringRedisTemplate.getExpire(sessionKey, TimeUnit.SECONDS);
-            if (ttl != null && ttl > 0) {
-                String kickedKey = "kicked:" + user.getId() + ":" + deviceType + ":" + oldTokenId;
-                stringRedisTemplate.opsForValue().set(kickedKey, "true", ttl, TimeUnit.SECONDS);
-            }
-        }
+        // 同端互斥：为旧会话打 kicked 标记，使旧令牌请求能收到 40102
+        userSessionManager.kickOldSession(user.getId(), deviceType);
+        // 写入会话对象（含角色与用户资料，供拦截器一次读取）
+        userSessionManager.createSession(user, deviceType, sessionTokenId);
 
-        // 设置新会话
-        stringRedisTemplate.opsForValue().set(sessionKey, sessionTokenId, 7, TimeUnit.DAYS);
-
-        // 生成令牌
-        String accessToken = jwtUtil.generateAccessToken(user, sessionTokenId, deviceType);
-        RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user, deviceType, sessionTokenId);
+        // 生成令牌（claims 仅含 userId/tokenId/deviceType）
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), sessionTokenId, deviceType);
+        RefreshTokenResult refreshResult = jwtUtil.generateRefreshToken(user.getId(), deviceType, sessionTokenId);
 
         UserLoginResponse response = new UserLoginResponse();
         response.setAccessToken(accessToken);

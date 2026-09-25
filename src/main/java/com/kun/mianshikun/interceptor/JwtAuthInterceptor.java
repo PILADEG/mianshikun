@@ -1,27 +1,35 @@
 package com.kun.mianshikun.interceptor;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
+import com.kun.mianshikun.manager.UserSessionManager;
 import com.kun.mianshikun.model.dto.user.RefreshTokenResult;
-import com.kun.mianshikun.model.entity.User;
-import com.kun.mianshikun.service.UserService;
-import com.kun.mianshikun.util.DeviceUtil;
+import com.kun.mianshikun.model.dto.user.SessionInfo;
 import com.kun.mianshikun.util.JwtUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import java.io.IOException;
+import java.util.UUID;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * JWT 认证拦截器
+ * <p>
+ * 每个请求只做三件事：
+ * <ol>
+ *   <li>验签 Access Token（本地 CPU 操作）</li>
+ *   <li>读取一次会话（本地缓存 → Redis），同时完成活跃度校验</li>
+ *   <li>把用户上下文注入 request attribute（业务层/AOP 切面从内存读取，不再查库）</li>
+ * </ol>
+ */
 @Component
 @Slf4j
 public class JwtAuthInterceptor implements HandlerInterceptor {
@@ -30,22 +38,19 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     private static final String ATTR_USER_ROLE = "JWT_USER_ROLE";
     private static final String ATTR_USER_NAME = "JWT_USER_NAME";
     private static final String ATTR_USER_AVATAR = "JWT_USER_AVATAR";
+    private static final String ATTR_DEVICE_TYPE = "JWT_DEVICE_TYPE";
 
     @Resource
     private JwtUtil jwtUtil;
 
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Resource
-    private UserService userService;
+    private UserSessionManager userSessionManager;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
             Object handler) throws Exception {
         String authHeader = request.getHeader("Authorization");
-        // 无 token → 匿名访问，放行
-        log.info("JWT interceptor action:{}",request.getRequestURI());
+        // 无 token → 匿名访问放行，登录态由业务层（@AuthCheck / UserContext 判空）兜底
         if (StringUtils.isBlank(authHeader) || !authHeader.startsWith("Bearer ")) {
             return true;
         }
@@ -53,30 +58,37 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         try {
             Claims claims = jwtUtil.parseAccessToken(accessToken);
-            log.info("JWT parse success: {}", claims);
-
-            // 活跃会话校验：access token 有效期内，检查 session 是否仍是最新的
+            Long userId = jwtUtil.getUserId(claims);
             String tokenId = jwtUtil.getTokenId(claims);
             String deviceType = jwtUtil.getDeviceType(claims);
-            if (tokenId != null && deviceType != null) {
-                boolean isActive = checkActiveSession(
-                        claims.get("userId", Long.class), deviceType, tokenId, response);
-                if (!isActive) {
-                    return false;
-                }
+
+            if (userId == null || StringUtils.isBlank(tokenId) || StringUtils.isBlank(deviceType)) {
+                writeUnauthorized(response, "未登录");
+                return false;
             }
 
-            User user = userService.getOne(
-                    new QueryWrapper<User>()
-                            .eq("id", claims.get("userId", Long.class)));
-            log.info("JWT parse success: {}", user);
-            claims.put("userRole", user.getUserRole());
-            claims.put("userName", user.getUserName());
-            setRequestAttributes(request, claims);
+            // 单次会话读取：活跃校验 + 用户上下文，全部来自会话对象（不再查询数据库）
+            SessionInfo session = userSessionManager.getSession(userId, deviceType,
+                    isSensitivePath(request));
+            if (session == null) {
+                if (userSessionManager.consumeKicked(userId, deviceType, tokenId)) {
+                    writeKickedOffline(response);
+                } else {
+                    writeUnauthorized(response, "未登录");
+                }
+                return false;
+            }
+            if (!tokenId.equals(session.getTokenId())) {
+                // tokenId 不匹配 → 该令牌已被同端新登录顶替
+                userSessionManager.consumeKicked(userId, deviceType, tokenId);
+                writeKickedOffline(response);
+                return false;
+            }
+
+            setRequestAttributes(request, userId, deviceType, session);
             return true;
         } catch (ExpiredJwtException e) {
-            Claims expiredClaims = e.getClaims();
-            return tryRefresh(request, response, expiredClaims);
+            return tryRefresh(request, response, e.getClaims());
         } catch (Exception e) {
             log.warn("JWT parse failed: {}", e.getMessage());
             writeUnauthorized(response, "未登录");
@@ -85,41 +97,28 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * 校验当前 access token 是否仍是活跃会话
+     * 敏感路径强制回源 Redis：避免本地缓存窗口内读到过期会话
+     * （用户资料/权限变更相关的 /user/** 接口）
      */
-    private boolean checkActiveSession(Long userId, String deviceType, String tokenId,
-            HttpServletResponse response) throws IOException {
-        String sessionKey = "session:" + userId + ":" + deviceType;
-        String activeTokenId = stringRedisTemplate.opsForValue().get(sessionKey);
-
-        if (activeTokenId == null) {
-            // session 不存在 → 检查是否曾被打过 kicked 标记
-            String kickedKey = "kicked:" + userId + ":" + deviceType + ":" + tokenId;
-            String isKicked = stringRedisTemplate.opsForValue().get(kickedKey);
-            if (isKicked != null) {
-                stringRedisTemplate.delete(kickedKey);
-                writeKickedOffline(response);
-                return false;
-            }
-            writeUnauthorized(response, "未登录");
+    private boolean isSensitivePath(HttpServletRequest request) {
+        // 注意：Spring Boot 的 DispatcherServlet 默认映射为 "/"，
+        // 此时 getServletPath() 返回空串、真实路径在 pathInfo 中，
+        // 因此这里用 requestURI 去掉 contextPath 后再判断。
+        String uri = request.getRequestURI();
+        if (StringUtils.isBlank(uri)) {
             return false;
         }
-
-        if (!activeTokenId.equals(tokenId)) {
-            // tokenId 不匹配 → 被踢下线
-            String kickedKey = "kicked:" + userId + ":" + deviceType + ":" + tokenId;
-            stringRedisTemplate.delete(kickedKey);
-            writeKickedOffline(response);
-            return false;
+        String contextPath = request.getContextPath();
+        String path = uri;
+        if (StringUtils.isNotBlank(contextPath) && uri.startsWith(contextPath)) {
+            path = uri.substring(contextPath.length());
         }
-
-        return true;
+        return path.startsWith("/user/");
     }
 
     private boolean tryRefresh(HttpServletRequest request, HttpServletResponse response,
             Claims expiredClaims) throws IOException {
         String refreshTokenStr = request.getHeader("X-Refresh-Token");
-        log.info("JWT refresh interceptor: {}", refreshTokenStr);
         if (StringUtils.isBlank(refreshTokenStr)) {
             writeUnauthorized(response, "未登录");
             return false;
@@ -130,58 +129,38 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             Long userId = jwtUtil.getUserId(refreshClaims);
             String tokenId = jwtUtil.getTokenId(refreshClaims);
             String deviceType = jwtUtil.getDeviceType(refreshClaims);
-
-            // 兼容旧 token：deviceType 为 null 时走旧 Redis key 逻辑
-            if (deviceType == null) {
-                return tryRefreshLegacy(request, response, expiredClaims, refreshClaims, userId, tokenId);
-            }
-
-            String sessionKey = "session:" + userId + ":" + deviceType;
-            String activeTokenId = stringRedisTemplate.opsForValue().get(sessionKey);
-
-            // session key 不存在 → 可能是已注销或被踢后活跃方也注销了
-            if (activeTokenId == null) {
-                String kickedKey = "kicked:" + userId + ":" + deviceType + ":" + tokenId;
-                String isKicked = stringRedisTemplate.opsForValue().get(kickedKey);
-                if (isKicked != null) {
-                    stringRedisTemplate.delete(kickedKey);
-                    writeKickedOffline(response);
-                    return false;
-                }
-                log.info("Session not found, user may have logged out: {}", userId);
+            if (userId == null || StringUtils.isBlank(tokenId) || StringUtils.isBlank(deviceType)) {
                 writeUnauthorized(response, "未登录");
                 return false;
             }
 
-            // tokenId 不匹配 → 被踢下线
-            if (!activeTokenId.equals(tokenId)) {
-                log.info("Token kicked offline, userId: {}, deviceType: {}", userId, deviceType);
-                String kickedKey = "kicked:" + userId + ":" + deviceType + ":" + tokenId;
-                stringRedisTemplate.delete(kickedKey);
+            // 刷新必须回源 Redis：这是会话真实性的权威校验
+            SessionInfo session = userSessionManager.getSession(userId, deviceType, true);
+            if (session == null) {
+                if (userSessionManager.consumeKicked(userId, deviceType, tokenId)) {
+                    writeKickedOffline(response);
+                } else {
+                    writeUnauthorized(response, "未登录");
+                }
+                return false;
+            }
+            if (!tokenId.equals(session.getTokenId())) {
+                userSessionManager.consumeKicked(userId, deviceType, tokenId);
                 writeKickedOffline(response);
                 return false;
             }
 
-            User user = userService.getById(userId);
-            if (user == null) {
-                log.info("User not found: {}", userId);
-                writeUnauthorized(response, "未登录");
-                return false;
-            }
-
-            String newTokenId = java.util.UUID.randomUUID().toString();
-            String newAccessToken = jwtUtil.generateAccessToken(user, newTokenId, deviceType);
-            RefreshTokenResult newRefresh = jwtUtil.generateRefreshToken(user, deviceType, newTokenId);
-
-            stringRedisTemplate.opsForValue().set(
-                    sessionKey,
-                    newTokenId,
-                    7, java.util.concurrent.TimeUnit.DAYS);
+            // 令牌轮换：生成新令牌对并更新会话中的 tokenId（保留用户资料）
+            String newTokenId = UUID.randomUUID().toString();
+            String newAccessToken = jwtUtil.generateAccessToken(userId, newTokenId, deviceType);
+            RefreshTokenResult newRefresh = jwtUtil.generateRefreshToken(userId, deviceType, newTokenId);
+            userSessionManager.rotateToken(userId, deviceType, newTokenId);
 
             response.setHeader("X-Access-Token", newAccessToken);
             response.setHeader("X-Refresh-Token", newRefresh.getToken());
 
-            setRequestAttributes(request, expiredClaims);
+            // 本次请求沿用旧令牌的身份，用户上下文仍从会话对象构建
+            setRequestAttributes(request, userId, deviceType, session);
             return true;
         } catch (Exception e) {
             log.warn("Refresh failed: {}", e.getMessage());
@@ -190,62 +169,25 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
     }
 
-    /**
-     * 兼容旧版 refresh token（无 deviceType claim），走旧 Redis key refresh_token:<userId>
-     */
-    private boolean tryRefreshLegacy(HttpServletRequest request, HttpServletResponse response,
-            Claims expiredClaims, Claims refreshClaims, Long userId, String tokenId) throws IOException {
-        String redisTokenId = stringRedisTemplate.opsForValue().get("refresh_token:" + userId);
-        if (redisTokenId == null || !redisTokenId.equals(tokenId)) {
-            log.info("Refresh token not match: {}", userId);
-            writeUnauthorized(response, "未登录");
-            return false;
-        }
-
-        User user = userService.getById(userId);
-        if (user == null) {
-            log.info("User not found: {}", userId);
-            writeUnauthorized(response, "未登录");
-            return false;
-        }
-
-        // 生成新 token 时自动携带 deviceType，完成迁移
-        String deviceType = DeviceUtil.detectDeviceType(request.getHeader("User-Agent"));
-        String newTokenId = java.util.UUID.randomUUID().toString();
-        String newAccessToken = jwtUtil.generateAccessToken(user, newTokenId, deviceType);
-        RefreshTokenResult newRefresh = jwtUtil.generateRefreshToken(user, deviceType, newTokenId);
-
-        stringRedisTemplate.opsForValue().set(
-                "session:" + userId + ":" + deviceType,
-                newTokenId,
-                7, java.util.concurrent.TimeUnit.DAYS);
-        stringRedisTemplate.delete("refresh_token:" + userId);
-
-        response.setHeader("X-Access-Token", newAccessToken);
-        response.setHeader("X-Refresh-Token", newRefresh.getToken());
-
-        setRequestAttributes(request, expiredClaims);
-        return true;
+    private void setRequestAttributes(HttpServletRequest request, Long userId,
+            String deviceType, SessionInfo session) {
+        request.setAttribute(ATTR_USER_ID, userId);
+        request.setAttribute(ATTR_USER_ROLE, session.getUserRole());
+        request.setAttribute(ATTR_USER_NAME, session.getUserName());
+        request.setAttribute(ATTR_USER_AVATAR, session.getUserAvatar());
+        request.setAttribute(ATTR_DEVICE_TYPE, deviceType);
     }
 
     private void writeKickedOffline(HttpServletResponse response) throws IOException {
-        response.setContentType("application/json;charset=UTF-8");
-        BaseResponse<?> resp = ResultUtils.error(ErrorCode.KICKED_OFFLINE, "您的账号已在其他设备登录，您已被踢下线");
-        ObjectMapper mapper = new ObjectMapper();
-        response.getWriter().write(mapper.writeValueAsString(resp));
-    }
-
-    private void setRequestAttributes(HttpServletRequest request, Claims claims) {
-        request.setAttribute(ATTR_USER_ID, claims.get("userId", Long.class));
-        request.setAttribute(ATTR_USER_ROLE, claims.get("userRole", String.class));
-        request.setAttribute(ATTR_USER_NAME, claims.get("userName", String.class));
-        request.setAttribute(ATTR_USER_AVATAR, claims.get("userAvatar", String.class));
+        writeJson(response, ResultUtils.error(ErrorCode.KICKED_OFFLINE, "您的账号已在其他设备登录，您已被踢下线"));
     }
 
     private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        writeJson(response, ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, message));
+    }
+
+    private void writeJson(HttpServletResponse response, BaseResponse<?> resp) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
-        BaseResponse<?> resp = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, message);
-        ObjectMapper mapper = new ObjectMapper();
-        response.getWriter().write(mapper.writeValueAsString(resp));
+        response.getWriter().write(new ObjectMapper().writeValueAsString(resp));
     }
 }

@@ -1,7 +1,6 @@
 package com.kun.mianshikun.util;
 
 import com.kun.mianshikun.model.dto.user.RefreshTokenResult;
-import com.kun.mianshikun.model.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -9,11 +8,17 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+/**
+ * JWT 工具类
+ * <p>
+ * 令牌只承载「身份标识」三要素：userId / tokenId / deviceType。
+ * 用户角色与资料不放进令牌（JWT 载荷仅 base64 编码，放 PII 会明文暴露，
+ * 且会与数据库产生不一致），统一由 Redis 会话对象提供。
+ */
 @Component
 public class JwtUtil {
 
@@ -29,25 +34,22 @@ public class JwtUtil {
         this.refreshTokenExpire = refreshTokenExpire;
     }
 
-    public String generateAccessToken(User user, String tokenId, String deviceType) {
+    public String generateAccessToken(Long userId, String tokenId, String deviceType) {
         Date now = new Date();
         return Jwts.builder()
-                .claim("userId", user.getId())
+                .claim("userId", userId)
                 .claim("tokenId", tokenId)
                 .claim("deviceType", deviceType)
-                .claim("userRole", user.getUserRole())
-                .claim("userName", user.getUserName())
-                .claim("userAvatar", user.getUserAvatar())
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + accessTokenExpire * 1000))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public RefreshTokenResult generateRefreshToken(User user, String deviceType, String tokenId) {
+    public RefreshTokenResult generateRefreshToken(Long userId, String deviceType, String tokenId) {
         Date now = new Date();
         String token = Jwts.builder()
-                .claim("userId", user.getId())
+                .claim("userId", userId)
                 .claim("tokenId", tokenId)
                 .claim("deviceType", deviceType)
                 .setIssuedAt(now)
@@ -77,10 +79,6 @@ public class JwtUtil {
 
     public String getTokenId(Claims claims) {
         return claims.get("tokenId", String.class);
-    }
-
-    public String getUserRole(Claims claims) {
-        return claims.get("userRole", String.class);
     }
 
     public String getDeviceType(Claims claims) {

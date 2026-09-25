@@ -193,6 +193,17 @@
             <artifactId>redisson</artifactId>
             <version>4.6.1</version>
         </dependency>
+        <!-- 本地会话缓存（Caffeine），版本由 Spring Boot 统一管理 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <!-- Guava BloomFilter：按「元素数 + 误判率」精确分配位数组（黑名单） -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>30.0-jre</version>
+        </dependency>
     </dependencies>
 
     <build>

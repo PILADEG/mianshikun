@@ -27,6 +27,8 @@ import com.kun.mianshikun.model.entity.User;
 import com.kun.mianshikun.model.vo.QuestionVO;
 import com.kun.mianshikun.sentinel.SentinelConstant;
 import com.kun.mianshikun.service.QuestionBankQuestionService;
+import com.kun.mianshikun.manager.BlackListManager;
+import com.kun.mianshikun.manager.UserSessionManager;
 import com.kun.mianshikun.service.QuestionService;
 import com.kun.mianshikun.service.RateLimiter;
 import com.kun.mianshikun.service.UserService;
@@ -59,6 +61,12 @@ public class QuestionController {
     private QuestionBankQuestionService questionBankQuestionService;
     @Resource
     private RateLimiter rateLimiter;
+
+    @Resource
+    private UserSessionManager userSessionManager;
+
+    @Resource
+    private BlackListManager blackListManager;
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -164,7 +172,11 @@ public class QuestionController {
                         .eq(User::getId, userId)
                         .set(User::getUserRole, "ban")
                         .update();
-                log.warn("user banned due to rate limit violation, userId={}", userId);
+                // 同步会话中的角色，使封号对进行中的会话立即生效（无需等待令牌过期）
+                userSessionManager.updateRoleForAllDevices(userId, "ban");
+                // 把触发封号的 IP 加入黑名单：本实例立即拦截，并批量同步到 Nacos 配置
+                blackListManager.banIp(address);
+                log.warn("user banned due to rate limit violation, userId={}, ip={}", userId, address);
             }
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "请求过于频繁，请稍后再试");
         }

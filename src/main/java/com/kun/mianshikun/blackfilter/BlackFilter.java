@@ -1,16 +1,27 @@
 package com.kun.mianshikun.blackfilter;
 
+import com.kun.mianshikun.manager.BlackListManager;
 import com.kun.mianshikun.utils.NetUtils;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.servlet.*;
+import java.io.IOException;
+import javax.annotation.Resource;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 黑名单过滤器：命中 Nacos 静态名单或本实例动态黑名单（封号 IP）即拦截
+ */
 @Slf4j
 @WebFilter(filterName = "blackFilter", urlPatterns = "/*")
 public class BlackFilter implements Filter {
+
+    @Resource
+    private BlackListManager blackListManager;
 
     @Override
     public void doFilter(ServletRequest servletRequest,
@@ -18,9 +29,8 @@ public class BlackFilter implements Filter {
                          FilterChain filterChain)
             throws IOException, ServletException {
         String address = NetUtils.getIpAddress((HttpServletRequest) servletRequest);
-        log.info("黑名单过滤器开始过滤：{}", address);
-        if (BlackListUtils.isBlack(address)) {
-            log.info("黑名单用户：{}", address);
+        if (blackListManager.isBlack(address)) {
+            log.warn("黑名单用户被拦截：{}", address);
             servletResponse.setContentType("text/html;charset=utf-8");
             servletResponse.getWriter().write("黑名单用户");
             return;

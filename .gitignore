@@ -24,7 +24,7 @@ target/
 *.ipr
 mvnw
 mvnw.cmd
-
+/sql/question_es_README.md
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
