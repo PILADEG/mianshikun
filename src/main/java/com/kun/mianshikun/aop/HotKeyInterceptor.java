@@ -3,6 +3,7 @@ package com.kun.mianshikun.aop;
 import com.jd.platform.hotkey.client.callback.JdHotKeyStore;
 import com.kun.mianshikun.annotation.HotKeyCache;
 import com.kun.mianshikun.util.SpelUtils;
+import kotlin.random.Random;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -12,6 +13,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -47,7 +49,8 @@ public class HotKeyInterceptor {
 
         // 3. 若已是热 key，结果存入 Redis
         if (JdHotKeyStore.isHotKey(key) && result != null) {
-            redissonClient.getBucket(fullKey).set(result,10, TimeUnit.MINUTES);
+            long expire = ThreadLocalRandom.current().nextLong(10,20);
+            redissonClient.getBucket(fullKey).set(result,expire, TimeUnit.MINUTES);
         }
 
         return result;

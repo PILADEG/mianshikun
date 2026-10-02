@@ -13,9 +13,6 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * 黑名单过滤器：命中 Nacos 静态名单或本实例动态黑名单（封号 IP）即拦截
- */
 @Slf4j
 @WebFilter(filterName = "blackFilter", urlPatterns = "/*")
 public class BlackFilter implements Filter {

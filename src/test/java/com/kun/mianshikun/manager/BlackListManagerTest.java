@@ -18,10 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/**
- * 黑名单链路集成测试：封号 IP -> 本实例即时生效 -> 批量写入 Nacos -> 静态过滤器重建命中。
- * 注意：会在真实 Nacos 配置上做增删，测试结束会清理测试数据。
- */
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BlackListManagerTest {

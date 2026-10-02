@@ -3,7 +3,7 @@ package com.kun.mianshikun.constant;
 public interface RedisConstant {
     String USER_SIGN_IN_KEY = "user:signins:";
     String QUESTIONBANK_HOTKEY_KEY = "questionBank:hotkey:";
-
+    String QUESTION_KEY_PREFIX = "question:hotkey:";
     // 违规计数（共享，按用户维度）
     String VIOLATION_KEY_PREFIX = "violation:user:";
 

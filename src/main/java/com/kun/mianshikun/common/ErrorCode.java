@@ -1,9 +1,5 @@
 package com.kun.mianshikun.common;
 
-/**
- * 自定义错误码
- *
- */
 public enum ErrorCode {
 
     SUCCESS(0, "ok"),
@@ -16,14 +12,8 @@ public enum ErrorCode {
     SYSTEM_ERROR(50000, "系统内部异常"),
     OPERATION_ERROR(50001, "操作失败");
 
-    /**
-     * 状态码
-     */
     private final int code;
 
-    /**
-     * 信息
-     */
     private final String message;
 
     ErrorCode(int code, String message) {

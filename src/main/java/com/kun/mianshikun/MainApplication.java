@@ -8,10 +8,6 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-/**
- * 主类（项目启动入口）
- *
- */
 @SpringBootApplication
 @MapperScan("com.kun.mianshikun.mapper")
 @EnableScheduling

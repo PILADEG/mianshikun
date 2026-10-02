@@ -3,18 +3,8 @@ package com.kun.mianshikun.utils;
 import java.net.InetAddress;
 import javax.servlet.http.HttpServletRequest;
 
-/**
- * 网络工具类
- *
- */
 public class NetUtils {
 
-    /**
-     * 获取客户端 IP 地址
-     *
-     * @param request
-     * @return
-     */
     public static String getIpAddress(HttpServletRequest request) {
         String ip = request.getHeader("x-forwarded-for");
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {

@@ -16,9 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * 基于 Redis Lua 的 IP 限流器
- */
 @Component
 public class RateLimiter {
 
@@ -37,16 +34,6 @@ public class RateLimiter {
         }
     }
 
-    /**
-     * 执行限流检查
-     *
-     * @param module       限流模块名
-     * @param ip           请求 IP
-     * @param userId       用户 ID（可为 null）
-     * @param threshold    分钟限流阈值
-     * @param banThreshold 封号阈值（违规次数）
-     * @return 限流结果
-     */
     @SuppressWarnings("unchecked")
     public RateLimitResult check(String module, String ip, Long userId,
                                   long threshold, long banThreshold) {

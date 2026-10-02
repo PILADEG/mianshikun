@@ -20,16 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * JWT 认证拦截器
- * <p>
- * 每个请求只做三件事：
- * <ol>
- *   <li>验签 Access Token（本地 CPU 操作）</li>
- *   <li>读取一次会话（本地缓存 → Redis），同时完成活跃度校验</li>
- *   <li>把用户上下文注入 request attribute（业务层/AOP 切面从内存读取，不再查库）</li>
- * </ol>
- */
 @Component
 @Slf4j
 public class JwtAuthInterceptor implements HandlerInterceptor {
@@ -96,10 +86,6 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
     }
 
-    /**
-     * 敏感路径强制回源 Redis：避免本地缓存窗口内读到过期会话
-     * （用户资料/权限变更相关的 /user/** 接口）
-     */
     private boolean isSensitivePath(HttpServletRequest request) {
         // 注意：Spring Boot 的 DispatcherServlet 默认映射为 "/"，
         // 此时 getServletPath() 返回空串、真实路径在 pathInfo 中，

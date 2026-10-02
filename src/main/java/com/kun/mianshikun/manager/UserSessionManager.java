@@ -20,17 +20,6 @@ import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-/**
- * 用户会话管理器（有状态 JWT 的会话层）
- * <p>
- * 三层读取结构：
- * <ol>
- *   <li>request attribute —— 请求级缓存（由 JwtAuthInterceptor 注入，业务层通过 UserContext 读取）</li>
- *   <li>Caffeine 本地缓存 —— 跨请求复用，TTL 作为「失效广播丢失」时的兜底</li>
- *   <li>Redis 会话对象 —— 跨实例权威源</li>
- * </ol>
- * 会话变更统一走 {@link #saveSession}：写 Redis → 清本地 → 广播其他实例。
- */
 @Slf4j
 @Component
 public class UserSessionManager {
@@ -39,7 +28,6 @@ public class UserSessionManager {
     private static final String KICKED_KEY_PREFIX = "kicked:";
     private static final String INVALIDATE_CHANNEL = "session:invalidate";
     private static final long SESSION_TTL_DAYS = 7L;
-    /** 本地缓存兜底 TTL（秒）：广播正常时失效延迟为毫秒级 */
     private static final long LOCAL_CACHE_TTL_SECONDS = 8L;
 
     private final Cache<String, SessionInfo> localCache = Caffeine.newBuilder()
@@ -50,8 +38,6 @@ public class UserSessionManager {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    // ==================== key 构造 ====================
-
     public static String sessionKey(Long userId, String deviceType) {
         return SESSION_KEY_PREFIX + userId + ":" + deviceType;
     }
@@ -60,9 +46,6 @@ public class UserSessionManager {
         return KICKED_KEY_PREFIX + userId + ":" + deviceType + ":" + tokenId;
     }
 
-    // ==================== 会话读写 ====================
-
-    /** 登录成功后写入会话（覆盖同端旧会话） */
     public void createSession(User user, String deviceType, String tokenId) {
         long now = System.currentTimeMillis();
         SessionInfo info = SessionInfo.builder()
@@ -80,11 +63,6 @@ public class UserSessionManager {
         return getSession(userId, deviceType, false);
     }
 
-    /**
-     * 读取会话
-     *
-     * @param forceRefresh true 时跳过本地缓存直接回源 Redis（用于刷新令牌、注销等敏感路径）
-     */
     public SessionInfo getSession(Long userId, String deviceType, boolean forceRefresh) {
         if (userId == null || StringUtils.isBlank(deviceType)) {
             return null;
@@ -92,7 +70,6 @@ public class UserSessionManager {
         return getSessionByKey(sessionKey(userId, deviceType), forceRefresh);
     }
 
-    /** 令牌轮换：仅更新会话中的 tokenId（保留用户资料） */
     public void rotateToken(Long userId, String deviceType, String newTokenId) {
         String key = sessionKey(userId, deviceType);
         SessionInfo info = getSessionByKey(key, true);
@@ -104,7 +81,6 @@ public class UserSessionManager {
         saveSession(key, info);
     }
 
-    /** 注销：删除会话（该设备令牌立即失效） */
     public void deleteSession(Long userId, String deviceType) {
         String key = sessionKey(userId, deviceType);
         try {
@@ -116,7 +92,6 @@ public class UserSessionManager {
         publishInvalidate(key);
     }
 
-    /** 同端新登录：为旧会话打 kicked 标记，让旧令牌能识别出「已被踢下线」 */
     public void kickOldSession(Long userId, String deviceType) {
         String key = sessionKey(userId, deviceType);
         try {
@@ -139,7 +114,6 @@ public class UserSessionManager {
         }
     }
 
-    /** 消费 kicked 标记：返回 true 表示该令牌确实是被踢下线的 */
     public boolean consumeKicked(Long userId, String deviceType, String tokenId) {
         if (userId == null || StringUtils.isBlank(deviceType) || StringUtils.isBlank(tokenId)) {
             return false;
@@ -157,7 +131,6 @@ public class UserSessionManager {
         return false;
     }
 
-    /** 用户资料变更后同步会话（昵称/头像/角色），使变更立即生效 */
     public void syncUserInfo(Long userId, String deviceType, User user) {
         if (user == null || userId == null) {
             return;
@@ -183,7 +156,6 @@ public class UserSessionManager {
         saveSession(key, info);
     }
 
-    /** 封号等场景：同步该用户所有设备会话的角色，使后续请求立即被拒绝 */
     public void updateRoleForAllDevices(Long userId, String role) {
         updateAllSessions(userId, role, null, null);
     }
@@ -191,8 +163,6 @@ public class UserSessionManager {
     public void evictLocal(String key) {
         localCache.invalidate(key);
     }
-
-    // ==================== 内部实现 ====================
 
     private void updateAllSessions(Long userId, String role, String userName, String userAvatar) {
         Set<String> keys = new HashSet<>();
@@ -282,7 +252,6 @@ public class UserSessionManager {
         log.debug("session cache invalidated by broadcast: {}", key);
     }
 
-    /** 订阅会话失效广播：多实例部署时保证各节点本地缓存一致 */
     @Bean
     public RedisMessageListenerContainer sessionInvalidateListenerContainer(
             RedisConnectionFactory connectionFactory) {

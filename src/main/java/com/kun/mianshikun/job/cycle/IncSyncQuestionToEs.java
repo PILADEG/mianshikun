@@ -27,9 +27,6 @@ public class IncSyncQuestionToEs {
     @Resource
     private QuestionEsDao questionEsDao;
 
-    /**
-     * 每分钟执行一次
-     */
     @Scheduled(fixedRate = 60 * 1000)
     public void run() {
         try {

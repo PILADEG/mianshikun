@@ -12,13 +12,6 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * JWT 工具类
- * <p>
- * 令牌只承载「身份标识」三要素：userId / tokenId / deviceType。
- * 用户角色与资料不放进令牌（JWT 载荷仅 base64 编码，放 PII 会明文暴露，
- * 且会与数据库产生不一致），统一由 Redis 会话对象提供。
- */
 @Component
 public class JwtUtil {
 

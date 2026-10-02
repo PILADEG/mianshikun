@@ -20,30 +20,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * 黑名单管理器
- * <p>
- * 双层结构：
- * <ol>
- *   <li><b>本实例动态黑名单</b>：封号当刻写入，本实例下一个请求立即拦截（无需等 Nacos 推送 + 过滤器重建）</li>
- *   <li><b>Nacos 静态名单</b>：定时把动态黑名单批量合并写入 Nacos 配置，
- *       由 {@link BlackListUtils#rebuild} 供所有实例共享</li>
- * </ol>
- * 之所以批量写入而非逐条写 Nacos：配置每次变更都会推送全实例并触发布隆过滤器重建，
- * 且 Nacos 是「读-改-写」全量覆盖，逐条写既有推送压力也有并发覆盖风险。
- */
 @Slf4j
 @Component
 public class BlackListManager {
 
-    /** 同步到 Nacos 的分布式锁（多实例部署时避免并发覆盖配置） */
     private static final String SYNC_LOCK_KEY = "lock:blacklist:nacos:sync";
     private static final int PUBLISH_RETRY = 3;
 
-    /** 本实例即时生效的动态黑名单（封号即写入） */
     private final Set<String> localDynamic = ConcurrentHashMap.newKeySet();
 
-    /** 待批量同步到 Nacos 的缓冲 */
     private final Set<String> pendingSync = ConcurrentHashMap.newKeySet();
 
     @NacosInjected
@@ -58,11 +43,6 @@ public class BlackListManager {
     @Resource
     private RedissonClient redissonClient;
 
-    // ==================== 对外接口 ====================
-
-    /**
-     * 封号时调用：IP 立即进本实例黑名单，并排队等待批量写入 Nacos
-     */
     public void banIp(String ip) {
         if (StringUtils.isBlank(ip)) {
             return;
@@ -75,7 +55,6 @@ public class BlackListManager {
         }
     }
 
-    /** 黑名单判定：本实例动态名单 ∪ Nacos 静态布隆过滤器 */
     public boolean isBlack(String ip) {
         if (StringUtils.isBlank(ip)) {
             return false;
@@ -91,15 +70,11 @@ public class BlackListManager {
         return pendingSync.size();
     }
 
-    // ==================== 定时批量同步 ====================
-
-    /** 定时（默认 60 秒）把待同步的 IP 合并写入 Nacos；启动 30 秒后开始 */
     @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     public void scheduledFlush() {
         flushNow();
     }
 
-    /** 立即同步（供定时任务与测试调用） */
     public boolean flushNow() {
         if (pendingSync.isEmpty()) {
             return true;
@@ -137,7 +112,6 @@ public class BlackListManager {
         }
     }
 
-    /** 读-改-写 Nacos 配置：带 cas 乐观锁重试，最后一次退化为直写（有分布式锁兜底） */
     private boolean publishBatch(Set<String> batch) {
         for (int attempt = 1; attempt <= PUBLISH_RETRY; attempt++) {
             try {

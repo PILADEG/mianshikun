@@ -13,18 +13,11 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/**
- * 请求响应日志 AOP
- *
- **/
 @Aspect
 @Component
 @Slf4j
 public class LogInterceptor {
 
-    /**
-     * 执行拦截
-     */
     @Around("execution(* com.kun.mianshikun.controller.*.*(..))")
     public Object doInterceptor(ProceedingJoinPoint point) throws Throwable {
         // 计时
@@ -51,4 +44,3 @@ public class LogInterceptor {
         return result;
     }
 }
-

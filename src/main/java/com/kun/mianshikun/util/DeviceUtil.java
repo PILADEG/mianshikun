@@ -2,22 +2,13 @@ package com.kun.mianshikun.util;
 
 import org.apache.commons.lang3.StringUtils;
 
-/**
- * 设备类型检测工具类
- */
 public class DeviceUtil {
 
-    /**
-     * 设备类型枚举
-     */
     public static final String DEVICE_PC = "PC";
     public static final String DEVICE_MOBILE = "MOBILE";
     public static final String DEVICE_TABLET = "TABLET";
     public static final String DEVICE_OTHER = "OTHER";
 
-    /**
-     * 根据 User-Agent 判断设备类型
-     */
     public static String detectDeviceType(String userAgent) {
         if (StringUtils.isBlank(userAgent)) {
             return DEVICE_OTHER;

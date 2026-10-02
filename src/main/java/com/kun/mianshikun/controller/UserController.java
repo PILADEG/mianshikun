@@ -50,10 +50,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import static com.kun.mianshikun.service.impl.UserServiceImpl.SALT;
 
-/**
- * 用户接口
- *
- */
 @RestController
 @RequestMapping("/user")
 @Slf4j
@@ -81,12 +77,6 @@ public class UserController {
         }
         return ResultUtils.success(userService.getUserSignInDays(userId, year));
     }
-    /**
-     * 用户注册
-     *
-     * @param userRegisterRequest
-     * @return
-     */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest,
     HttpServletRequest  request) {
@@ -132,13 +122,6 @@ public class UserController {
 
     }
 
-    /**
-     * 用户登录
-     *
-     * @param userLoginRequest
-     * 
-     * @return
-     */
     @PostMapping("/login")
     public BaseResponse<UserLoginResponse> userLogin(@RequestBody UserLoginRequest userLoginRequest,
                                                       HttpServletRequest request) {
@@ -183,12 +166,6 @@ public class UserController {
 
     }
 
-    /**
-     * 用户注销
-     *
-     * 
-     * @return
-     */
     @PostMapping("/logout")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         String refreshToken = request.getHeader("X-Refresh-Token");
@@ -196,12 +173,6 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
-    /**
-     * 获取当前登录用户
-     *
-     * 
-     * @return
-     */
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUser() {
         LoginUserVO loginUserVO = UserContext.getLoginUser();
@@ -215,13 +186,6 @@ public class UserController {
 
     // region 增删改查
 
-    /**
-     * 创建用户
-     *
-     * @param userAddRequest
-     * 
-     * @return
-     */
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
@@ -243,13 +207,6 @@ public class UserController {
         return ResultUtils.success(user.getId());
     }
 
-    /**
-     * 删除用户
-     *
-     * @param deleteRequest
-     * 
-     * @return
-     */
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
@@ -263,13 +220,6 @@ public class UserController {
         return ResultUtils.success(b);
     }
 
-    /**
-     * 更新用户
-     *
-     * @param userUpdateRequest
-     * 
-     * @return
-     */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
@@ -283,13 +233,6 @@ public class UserController {
         return ResultUtils.success(true);
     }
 
-    /**
-     * 根据 id 获取用户（仅管理员）
-     *
-     * @param id
-     * 
-     * @return
-     */
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserById(long id) {
@@ -301,13 +244,6 @@ public class UserController {
         return ResultUtils.success(user);
     }
 
-    /**
-     * 根据 id 获取包装类
-     *
-     * @param id
-     * 
-     * @return
-     */
     @GetMapping("/get/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<UserVO> getUserVOById(long id) {
@@ -316,13 +252,6 @@ public class UserController {
         return ResultUtils.success(userService.getUserVO(user));
     }
 
-    /**
-     * 分页获取用户列表（仅管理员）
-     *
-     * @param userQueryRequest
-     * 
-     * @return
-     */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<User>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest) {
@@ -333,13 +262,6 @@ public class UserController {
         return ResultUtils.success(userPage);
     }
 
-    /**
-     * 分页获取用户封装列表
-     *
-     * @param userQueryRequest
-     * 
-     * @return
-     */
     @PostMapping("/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
@@ -360,13 +282,6 @@ public class UserController {
 
     // endregion
 
-    /**
-     * 更新个人信息
-     *
-     * @param userUpdateMyRequest
-     * 
-     * @return
-     */
     @PostMapping("/update/my")
     public BaseResponse<Boolean> updateMyUser(@RequestBody UserUpdateMyRequest userUpdateMyRequest) {
         if (userUpdateMyRequest == null) {

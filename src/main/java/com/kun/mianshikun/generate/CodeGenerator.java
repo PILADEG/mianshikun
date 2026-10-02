@@ -12,19 +12,8 @@ import java.util.Map;
 import java.io.FileWriter;
 import java.io.Writer;
 
-/**
- * 代码生成器
- *
- */
 public class CodeGenerator {
 
-    /**
-     * 用法：修改生成参数和生成路径，注释掉不需要的生成逻辑，然后运行即可
-     *
-     * @param args
-     * @throws TemplateException
-     * @throws IOException
-     */
     public static void main(String[] args) throws TemplateException, IOException {
         // 指定生成参数
         String packageName = "com.kun.mianshikun";
@@ -87,15 +76,6 @@ public class CodeGenerator {
         System.out.println("生成 VO 成功，文件路径：" + outputPath);
     }
 
-    /**
-     * 生成文件
-     *
-     * @param inputPath  模板文件输入路径
-     * @param outputPath 输出路径
-     * @param model      数据模型
-     * @throws IOException
-     * @throws TemplateException
-     */
     public static void doGenerate(String inputPath, String outputPath, Object model) throws IOException, TemplateException {
         // new 出 Configuration 对象，参数为 FreeMarker 版本号
         Configuration configuration = new Configuration(Configuration.VERSION_2_3_31);

@@ -9,13 +9,6 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
 
-/**
- * JD HotKey 热 key 探测客户端配置
- * <p>
- * 前置条件：
- * 1. etcd、Worker、Dashboard 已启动
- * 2. hotkey-client jar 已放入 lib 目录
- */
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "spring.hotkey")

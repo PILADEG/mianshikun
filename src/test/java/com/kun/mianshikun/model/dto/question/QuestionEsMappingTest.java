@@ -15,10 +15,6 @@ import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.core.index.Settings;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 
-/**
- * 验证 A 方案：实体注解能为「新建索引」生成带 IK 分词的 mapping。
- * 做法：用框架按注解生成 mapping -> 建到临时索引 -> 读回断言 -> 删除临时索引。
- */
 @SpringBootTest
 class QuestionEsMappingTest {
 

@@ -12,10 +12,6 @@ import cn.hutool.core.collection.CollUtil;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-/**
- * 全量同步题目到 es
- *
- */
 // todo 取消注释开启任务
 //@Component
 @Slf4j

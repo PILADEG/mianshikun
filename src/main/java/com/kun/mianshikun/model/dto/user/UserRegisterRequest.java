@@ -3,10 +3,6 @@ package com.kun.mianshikun.model.dto.user;
 import java.io.Serializable;
 import lombok.Data;
 
-/**
- * 用户注册请求体
- *
- */
 @Data
 public class UserRegisterRequest implements Serializable {
 

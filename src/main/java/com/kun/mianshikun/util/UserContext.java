@@ -45,7 +45,6 @@ public class UserContext {
         return request != null ? (String) request.getAttribute(ATTR_USER_AVATAR) : null;
     }
 
-    /** 当前请求所属设备类型（由 JwtAuthInterceptor 注入） */
     public static String getDeviceType() {
         HttpServletRequest request = getRequest();
         return request != null ? (String) request.getAttribute(ATTR_DEVICE_TYPE) : null;
