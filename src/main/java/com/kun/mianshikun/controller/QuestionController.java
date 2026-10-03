@@ -139,7 +139,7 @@ public class QuestionController {
         return ResultUtils.success(result);
     }
     @AntSpiderCache(module = RateLimitModule.QUESTION, threshold = 20, banThreshold = 2)
-    @HotKeyCache(prefix = RedisConstant.QUESTION_KEY_PREFIX, key = HotKeyConstant.QUESTION_KEY + "#id")
+    @HotKeyCache(module = RateLimitModule.QUESTION, prefix = RedisConstant.QUESTION_KEY_PREFIX, key = "#id", hotkeyPrefix = HotKeyConstant.QUESTION_KEY)
     @GetMapping("/get/vo")
     public BaseResponse<QuestionVO> getQuestionVOById(Long id) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);

@@ -9,6 +9,7 @@ import com.kun.mianshikun.annotation.HotKeyCache;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.constant.CommonConstant;
 import com.kun.mianshikun.constant.HotKeyConstant;
+import com.kun.mianshikun.constant.RateLimitModule;
 import com.kun.mianshikun.constant.RedisConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.exception.ThrowUtils;
@@ -114,7 +115,7 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
         return questionBankVO;
     }
 
-    @HotKeyCache(key = HotKeyConstant.QUESTION_BANK_DETAIL_KEY + "#id",prefix = RedisConstant.QUESTIONBANK_HOTKEY_KEY)
+    @HotKeyCache(module = RateLimitModule.QUESTION_BANK, key = "#id", prefix = RedisConstant.QUESTIONBANK_HOTKEY_KEY,hotkeyPrefix = HotKeyConstant.QUESTION_BANK_DETAIL_KEY)
     @Override
     public QuestionBankVO getQuestionBankVOById(Long id, Boolean needQueryQuestionList, Integer current, Integer pageSize) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);

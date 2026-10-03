@@ -6,11 +6,13 @@ public interface RedisConstant {
     String QUESTION_KEY_PREFIX = "question:hotkey:";
     // 违规计数（共享，按用户维度）
     String VIOLATION_KEY_PREFIX = "violation:user:";
-
+    String HOTKEY_LOCK = "hotkey:lock:";
     String RATE_PREFIX = "rate";
 
     String BLACKLIST_KEY_PREFIX = "blacklist";
-
+    static String getHotkeyLock(String module,String id){
+        return HOTKEY_LOCK + module + ":" + id;
+    }
     static String getRateKey(String module, String ip, long minute) {
         return RATE_PREFIX + ":" + module + ":" + ip + ":" + minute;
     }
