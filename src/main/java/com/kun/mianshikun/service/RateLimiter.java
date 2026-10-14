@@ -39,8 +39,8 @@ public class RateLimiter {
                                   long threshold, long banThreshold) {
         try {
             long minute = System.currentTimeMillis() / 60000;
-            String minuteKey = RedisConstant.getRateKey(module, ip, minute);
-            String blacklistKey = RedisConstant.getBlacklistKey(module, ip);
+            String minuteKey = RedisConstant.getRateKey(module, ip, String.valueOf(userId),minute);
+            String blacklistKey = RedisConstant.getBlacklistKey(module, ip,String.valueOf(userId));
             String violationKey = RedisConstant.getViolationKey(userId);
 
             List<Object> result = (List<Object>) redissonClient.getScript().eval(

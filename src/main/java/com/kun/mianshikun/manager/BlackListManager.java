@@ -123,10 +123,6 @@ public class BlackListManager {
                         .distinct()
                         .collect(Collectors.toList());
                 String content = BlackListUtils.toYaml(distinct);
-                // 说明：cas 版本（publishConfigCas）在此不可用——@NacosInjected 注入的是
-                // nacos-spring 的 EventPublishingConfigService 装饰器，它未实现该接口方法，
-                // 运行时调用会抛 AbstractMethodError。因此这里用 Redisson 分布式锁
-                // 保证「读-改-写」串行，避免多实例并发覆盖配置。
                 boolean ok = configService.publishConfig(dataId, group, content,
                         ConfigType.YAML.getType());
                 if (ok) {

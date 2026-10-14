@@ -1,5 +1,5 @@
--- KEYS[1] = rate:<module>:<IP>:<yyyyMMddHHmm>
--- KEYS[2] = blacklist:<module>:<IP>
+-- KEYS[1] = rate:<module>:<userId>:<IP>:<yyyyMMddHHmm>
+-- KEYS[2] = blacklist:<module>:<userId>:<IP>
 -- KEYS[3] = violation:user:<userId>
 -- ARGV[1] = 限流阈值
 -- ARGV[2] = 封号阈值
