@@ -13,6 +13,9 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -91,7 +94,17 @@ public class UserSessionManager {
         localCache.invalidate(key);
         publishInvalidate(key);
     }
-
+    public void deleteAllSession(Long userId) {
+        for (String key : scanSessionKeys(userId)) {
+            try {
+                stringRedisTemplate.delete(key);
+            } catch (Exception e) {
+                log.warn("delete session failed, key={}", key, e);
+            }
+            localCache.invalidate(key);
+            publishInvalidate(key);
+        }
+    }
     public void kickOldSession(Long userId, String deviceType) {
         String key = sessionKey(userId, deviceType);
         try {
@@ -165,13 +178,7 @@ public class UserSessionManager {
     }
 
     private void updateAllSessions(Long userId, String role, String userName, String userAvatar) {
-        Set<String> keys = new HashSet<>();
-        try {
-            keys.addAll(stringRedisTemplate.keys(SESSION_KEY_PREFIX + userId + ":*"));
-        } catch (Exception e) {
-            log.warn("list session keys failed, userId={}", userId, e);
-        }
-        for (String key : keys) {
+        for (String key : scanSessionKeys(userId)) {
             SessionInfo info = getSessionByKey(key, true);
             if (info == null) {
                 continue;
@@ -187,6 +194,26 @@ public class UserSessionManager {
             }
             saveSession(key, info);
         }
+    }
+
+    // 用 SCAN 代替 KEYS：KEYS 是 O(N) 阻塞命令，用户量大时会卡住 Redis
+    private Set<String> scanSessionKeys(Long userId) {
+        String pattern = SESSION_KEY_PREFIX + userId + ":*";
+        Set<String> keys = new HashSet<>();
+        try {
+            stringRedisTemplate.execute((RedisCallback<Void>) connection -> {
+                try (Cursor<byte[]> cursor = connection.scan(
+                        ScanOptions.scanOptions().match(pattern).count(1000).build())) {
+                    while (cursor.hasNext()) {
+                        keys.add(new String(cursor.next(), StandardCharsets.UTF_8));
+                    }
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.warn("scan session keys failed, userId={}", userId, e);
+        }
+        return keys;
     }
 
     private SessionInfo getSessionByKey(String key, boolean forceRefresh) {

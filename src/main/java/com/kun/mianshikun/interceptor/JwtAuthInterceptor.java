@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
+import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.manager.UserSessionManager;
 import com.kun.mianshikun.model.dto.user.RefreshTokenResult;
 import com.kun.mianshikun.model.dto.user.SessionInfo;
@@ -74,7 +75,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
                 writeKickedOffline(response);
                 return false;
             }
-
+            if (UserConstant.BAN_ROLE.equals(session.getUserRole())
+                    && !"/user/logout".equals(pathOf(request))) {
+                writeJson(response, ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "您的账号已封禁"));
+                return false;
+            }
             setRequestAttributes(request, userId, deviceType, session);
             return true;
         } catch (ExpiredJwtException e) {
@@ -87,19 +92,22 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean isSensitivePath(HttpServletRequest request) {
-        // 注意：Spring Boot 的 DispatcherServlet 默认映射为 "/"，
-        // 此时 getServletPath() 返回空串、真实路径在 pathInfo 中，
-        // 因此这里用 requestURI 去掉 contextPath 后再判断。
+        return pathOf(request).startsWith("/user/");
+    }
+
+    private String pathOf(HttpServletRequest request) {
+        // Spring Boot 的 DispatcherServlet 默认映射为 "/"，getServletPath() 为空，
+        // 真实路径在 pathInfo 中，因此用 requestURI 去掉 contextPath。
         String uri = request.getRequestURI();
         if (StringUtils.isBlank(uri)) {
-            return false;
+            return "";
         }
         String contextPath = request.getContextPath();
         String path = uri;
         if (StringUtils.isNotBlank(contextPath) && uri.startsWith(contextPath)) {
             path = uri.substring(contextPath.length());
         }
-        return path.startsWith("/user/");
+        return path;
     }
 
     private boolean tryRefresh(HttpServletRequest request, HttpServletResponse response,
@@ -133,6 +141,10 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             if (!tokenId.equals(session.getTokenId())) {
                 userSessionManager.consumeKicked(userId, deviceType, tokenId);
                 writeKickedOffline(response);
+                return false;
+            }
+            if (UserConstant.BAN_ROLE.equals(session.getUserRole())) {
+                writeJson(response, ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "您的账号已封禁"));
                 return false;
             }
 

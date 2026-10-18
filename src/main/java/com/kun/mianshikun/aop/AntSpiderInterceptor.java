@@ -84,8 +84,9 @@ public class AntSpiderInterceptor {
                 .eq(User::getId, userId)
                 .set(User::getUserRole, BAN_ROLE)
                 .update();
-        // 同步会话中的角色，使封号对进行中的会话立即生效（无需等待令牌过期）
+        // 先写角色再删会话：删除失败时残留会话里的 ban 角色仍会被拦截器拦下
         userSessionManager.updateRoleForAllDevices(userId, BAN_ROLE);
+        userSessionManager.deleteAllSession(userId);
         // 把触发封号的 IP 加入黑名单：本实例立即拦截，并批量同步到 Nacos 配置
         blackListManager.banIp(ip);
         log.warn("user banned due to rate limit violation, userId={}, ip={}", userId, ip);

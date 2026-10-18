@@ -101,10 +101,12 @@ public class UserController {
             // Handle request rejection.
             ex.printStackTrace();
             if (!BlockException.isBlockException( ex)){
-                if (!(ex instanceof BusinessException)){
-                    Tracer.trace(ex);
-                    log.info("--------已上报--------");
+                if (ex instanceof BusinessException){
+                    BusinessException be = (BusinessException) ex;
+                    return ResultUtils.error(be.getCode(), be.getMessage());
                 }
+                Tracer.trace(ex);
+                log.info("--------已上报--------");
                 return ResultUtils.error(ErrorCode.SYSTEM_ERROR, ex.getMessage());
             }
             if (ex instanceof ParamFlowException){
@@ -145,10 +147,12 @@ public class UserController {
             // Handle request rejection.
             ex.printStackTrace();
             if (!BlockException.isBlockException( ex)){
-                if (!(ex instanceof BusinessException)){
-                    Tracer.trace(ex);
-                    log.info("--------已上报--------");
+                if (ex instanceof BusinessException){
+                    BusinessException be = (BusinessException) ex;
+                    return ResultUtils.error(be.getCode(), be.getMessage());
                 }
+                Tracer.trace(ex);
+                log.info("--------已上报--------");
                 return ResultUtils.error(ErrorCode.SYSTEM_ERROR, ex.getMessage());
             }
             if (ex instanceof ParamFlowException){
@@ -230,6 +234,14 @@ public class UserController {
         BeanUtils.copyProperties(userUpdateRequest, user);
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 角色变更要同步到在线会话：封号还要立即下线所有设备
+        if (StringUtils.isNotBlank(userUpdateRequest.getUserRole())) {
+            userSessionManager.updateRoleForAllDevices(userUpdateRequest.getId(),
+                    userUpdateRequest.getUserRole());
+            if (UserConstant.BAN_ROLE.equals(userUpdateRequest.getUserRole())) {
+                userSessionManager.deleteAllSession(userUpdateRequest.getId());
+            }
+        }
         return ResultUtils.success(true);
     }
 

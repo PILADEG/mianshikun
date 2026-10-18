@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.kun.mianshikun.common.BaseResponse;
 import com.kun.mianshikun.common.ErrorCode;
 import com.kun.mianshikun.common.ResultUtils;
+import com.kun.mianshikun.annotation.AuthCheck;
 import com.kun.mianshikun.constant.FileConstant;
+import com.kun.mianshikun.constant.UserConstant;
 import com.kun.mianshikun.exception.BusinessException;
 import com.kun.mianshikun.model.dto.file.UploadFileRequest;
 import com.kun.mianshikun.model.dto.questionBank.QuestionBankQueryRequest;
@@ -30,6 +32,7 @@ public class FileController {
     @Resource
     private QuestionBankService questionBankService;
     @PostMapping("/upload")
+    @AuthCheck(mustRole = UserConstant.DEFAULT_ROLE)
     public BaseResponse<String> uploadFile(@RequestPart("file") MultipartFile multipartFile,
             UploadFileRequest uploadFileRequest) {
 
@@ -67,6 +70,7 @@ public class FileController {
         }
     }
     @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteOldFile(@RequestBody QuestionBankQueryRequest questionBank){
         if (questionBank.getId() == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

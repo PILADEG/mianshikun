@@ -236,6 +236,7 @@ public class QuestionController {
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
     }
 
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/delete/batch")
     public BaseResponse<Boolean> batchDeleteQuestions(
             @RequestBody QuestionBatchDeleteRequest questionIdList) {
