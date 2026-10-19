@@ -26,8 +26,8 @@ public interface RedisConstant {
         return USER_SIGN_IN_KEY + year + ":" + userId;
     }
 
-    static String getViolationKey(Long userId) {
+    static String getViolationKey(Long userId, String ip) {
 
-        return VIOLATION_KEY_PREFIX + (userId != null ? userId : 0);
+        return VIOLATION_KEY_PREFIX + (userId != null ? userId : 0) + ":" + ip;
     }
 }

@@ -41,7 +41,7 @@ public class RateLimiter {
             long minute = System.currentTimeMillis() / 60000;
             String minuteKey = RedisConstant.getRateKey(module, ip, String.valueOf(userId),minute);
             String blacklistKey = RedisConstant.getBlacklistKey(module, ip,String.valueOf(userId));
-            String violationKey = RedisConstant.getViolationKey(userId);
+            String violationKey = RedisConstant.getViolationKey(userId,ip);
 
             List<Object> result = (List<Object>) redissonClient.getScript().eval(
                     RScript.Mode.READ_WRITE,

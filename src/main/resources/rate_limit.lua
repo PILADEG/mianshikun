@@ -1,6 +1,6 @@
 -- KEYS[1] = rate:<module>:<userId>:<IP>:<yyyyMMddHHmm>
 -- KEYS[2] = blacklist:<module>:<userId>:<IP>
--- KEYS[3] = violation:user:<userId>
+-- KEYS[3] = violation:user:<userId>:<IP>
 -- ARGV[1] = 限流阈值
 -- ARGV[2] = 封号阈值
 -- ARGV[3] = 分钟窗口 TTL

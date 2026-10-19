@@ -69,7 +69,7 @@ public class AntSpiderInterceptor {
             return joinPoint.proceed();
         }
 
-        if (rateResult.getViolationCount() == 1) {
+        if (rateResult.getViolationCount() == 2) {
             // 发短信警告，待完善
             log.warn("{}用户疑似爬虫", userId);
         }

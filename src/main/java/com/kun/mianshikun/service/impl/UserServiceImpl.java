@@ -187,8 +187,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (userId == null || StringUtils.isBlank(deviceType)) {
                 return true;
             }
-            // 仅当此 refresh token 是当前活跃会话时才删除会话
-            // 已被踢下线的 token 调用 logout 则不做任何操作
             SessionInfo session = userSessionManager.getSession(userId, deviceType, true);
             if (session != null && tokenId.equals(session.getTokenId())) {
                 userSessionManager.deleteSession(userId, deviceType);
